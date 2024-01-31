@@ -1,7 +1,5 @@
 #!/bin/bash
 
-
-
 ###############################################################################
 # INIT
 ###############################################################################
@@ -22,28 +20,6 @@ function init::variables(){
   # GitHub repository
   _git_trezor_repo='trezor/trezor-suite'
   _trezor_release_url="https://api.github.com/repos/${_git_trezor_repo}/releases/latest"
-
-  # Get the JSON data of the newest release
-  _json_git_response=$(qvm-run --pass-io ${_fedora_dvm_template_name} "curl -s ${_trezor_release_url}")
-
-  # Neueste Release-Version aus den JSON-Daten extrahieren
-  _latest_trezor_version=$(printf '%s' "${_json_git_response}" | \
-                            grep -o '"tag_name": "[^"]*' | \
-                            grep -o '[^"]*$')
-
-  # Trezor-release-url for the Linux x86_64 AppImage
-  _trezor_suite_app_url=$(qvm-run --pass-io ${_fedora_dvm_template_name} "printf '%s' ${_json_git_response} | jq -r '.assets[] | select(.name | endswith('linux-x86_64.AppImage')) | .browser_download_url'")
-
-  # Trezor-release-url for the Linux x86_64 AppImage asc file
-  _trezor_suite_asc_url=$(qvm-run --pass-io ${_fedora_dvm_template_name} "printf '%s' ${_json_git_response} | jq -r '.assets[] | select(.name | endswith('linux-x86_64.AppImage.asc)) | .browser_download_url'")
-
-  _trezor_suite_file_name="Trezor-Suite-${_latest_trezor_version}-linux-x86_64.AppImage"
-  _trezor_suite_asc_file_name="Trezor-Suite-${_latest_trezor_version}-linux-x86_64.AppImage.asc"
-  _trezor_suite_file_path="/home/user/${_trezor_suite_file_name}"
-  _trezor_suite_asc_file_path="/home/user/${_trezor_suite_asc_file_name}"
-
-  printf '%s\n' "Trezor Suite file name: ${_trezor_suite_file_name}"
-  sleep 5
 }
 
 ###############################################################################
@@ -380,20 +356,46 @@ function trezor::config::whonix-ws-trezor(){
   local s_satoshilaps_private_key_url=''
   local s_satoshilaps_local_path=''
   local s_app_whitelist=''
-  
+  local s_trezor_suite_app_url=''
+  local s_trezor_suite_asc_url=''
+  local s_trezor_suite_file_name=''
+  local s_trezor_suite_asc_file_name=''
+  local s_trezor_suite_file_path=''
+  local s_trezor_suite_asc_file_path=''
+
   s_satoshilaps_private_key='satoshilabs-2021-signing-key.asc'
   s_satoshilaps_private_key_url="https://trezor.io/security/${s_satoshilaps_private_key}"
   s_satoshilaps_local_path="/home/user/${s_satoshilaps_private_key}"
 
+
+  # Get the JSON data of the newest release
+  _json_git_response=$(qvm-run --pass-io ${_fedora_dvm_template_name} "curl -s ${_trezor_release_url}")
+
+  # Neueste Release-Version aus den JSON-Daten extrahieren
+  _latest_trezor_version=$(printf '%s' "${_json_git_response}" | \
+                            grep -o '"tag_name": "[^"]*' | \
+                            grep -o '[^"]*$')
+
+  # Trezor-release-url for the Linux x86_64 AppImage
+  s_trezor_suite_app_url=$(qvm-run --pass-io ${_fedora_dvm_template_name} "printf '%s' ${_json_git_response} | jq -r '.assets[] | select(.name | endswith('linux-x86_64.AppImage')) | .browser_download_url'")
+
+  # Trezor-release-url for the Linux x86_64 AppImage asc file
+  s_trezor_suite_asc_url=$(qvm-run --pass-io ${_fedora_dvm_template_name} "printf '%s' ${_json_git_response} | jq -r '.assets[] | select(.name | endswith('linux-x86_64.AppImage.asc)) | .browser_download_url'")
+
+  s_trezor_suite_file_name="Trezor-Suite-${_latest_trezor_version}-linux-x86_64.AppImage"
+  s_trezor_suite_asc_file_name="Trezor-Suite-${_latest_trezor_version}-linux-x86_64.AppImage.asc"
+  s_trezor_suite_file_path="/home/user/${s_trezor_suite_file_name}"
+  s_trezor_suite_asc_file_path="/home/user/${s_trezor_suite_asc_file_name}"
+
   # Newest Release-Asset (Linux x86_64 AppImage) Trezor-Suite-24.1.2-linux-x86_64
   printf '%s\n' "Getting Trezor Suite version ${_latest_trezor_version} (AppImage)..."
-  qvm-run --pass-io ${_fedora_dvm_template_name} "curl -L ${_trezor_suite_app_url}" | \
-    qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "cat > ${_trezor_suite_file_path}"
+  qvm-run --pass-io ${_fedora_dvm_template_name} "curl -L ${s_trezor_suite_app_url}" | \
+    qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "cat > ${s_trezor_suite_file_path}"
 
   # Download asc-file
   printf '%s\n' "Loading signatur file for the trezor suite version ${_latest_trezor_version}..."
-  qvm-run --pass-io ${_fedora_dvm_template_name} "curl -L ${_trezor_suite_asc_url}" | \
-    qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "cat > ${_trezor_suite_asc_file_path}"
+  qvm-run --pass-io ${_fedora_dvm_template_name} "curl -L ${s_trezor_suite_asc_url}" | \
+    qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "cat > ${s_trezor_suite_asc_file_path}"
 
   # Download and Import the signing key
   qvm-run --pass-io ${_fedora_dvm_template_name} "curl -L ${s_satoshilaps_private_key_url}" | \
@@ -404,23 +406,23 @@ function trezor::config::whonix-ws-trezor(){
 
   # checking signature
   printf '%s\n'  "Checking signature!"
-  if ! qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "gpg --verify ${_trezor_suite_asc_file_name} ${_trezor_suite_file_path}"
+  if ! qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "gpg --verify ${s_trezor_suite_asc_file_name} ${s_trezor_suite_file_path}"
   then
-    printf '%s\n' "ERROR: Unable to verify ${_trezor_suite_file_name}!"
-    printf '%s\n' "ERROR: Unable to verify ${_trezor_suite_file_name}!"
-    printf '%s\n' "ERROR: Unable to verify ${_trezor_suite_file_name}!"
+    printf '%s\n' "ERROR: Unable to verify ${s_trezor_suite_file_name}!"
+    printf '%s\n' "ERROR: Unable to verify ${s_trezor_suite_file_name}!"
+    printf '%s\n' "ERROR: Unable to verify ${s_trezor_suite_file_name}!"
     printf '%s\n' "STOPPING!"
     return 1
   fi
 
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "chmod +x ${_trezor_suite_file_path}"
+  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "chmod +x ${s_trezor_suite_file_path}"
 
-  printf '%s\n' "Extract Trezor Suite AppImage: ${_trezor_suite_file_name}"
+  printf '%s\n' "Extract Trezor Suite AppImage: ${s_trezor_suite_file_name}"
   
   # Not working cause it is only a lint to the trezor-suite.png file
-  #qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "${_trezor_suite_file_path} --appimage-extract trezor-suite.png"
-  #qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "${_trezor_suite_file_path} --appimage-extract trezor-suite.desktop"
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "${_trezor_suite_file_path} --appimage-extract >/dev/null"
+  #qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "${s_trezor_suite_file_path} --appimage-extract trezor-suite.png"
+  #qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "${s_trezor_suite_file_path} --appimage-extract trezor-suite.desktop"
+  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "${s_trezor_suite_file_path} --appimage-extract >/dev/null"
 
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sed -i 's|^Exec=.*|Exec=/opt/trezor-suite/trezor-suite.AppImage|' /home/user/squashfs-root/trezor-suite.desktop"
   
@@ -433,8 +435,8 @@ function trezor::config::whonix-ws-trezor(){
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sed -i 's|^Exec=.*|Exec=/opt/trezor-suite/trezor-suite.AppImage|' /home/user/"
 
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo mkdir -p /opt/trezor-suite'
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sudo mv ${_trezor_suite_file_path} /opt/trezor-suite"
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "ln /opt/trezor-suite/${_trezor_suite_file_name} /opt/trezor-suite/trezor-suite.AppImage"
+  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sudo mv ${s_trezor_suite_file_path} /opt/trezor-suite"
+  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "ln /opt/trezor-suite/${s_trezor_suite_file_name} /opt/trezor-suite/trezor-suite.AppImage"
 
   # Add trezor-suite to Appmenu
   s_app_whitelist=$(qvm-appmenus ${_whonix_ws_trezor_wm_name} --get-whitelist)
@@ -446,7 +448,7 @@ function trezor::config::whonix-ws-trezor(){
 
   # Some Cleanup
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sudo rm -f ${s_satoshilaps_local_path}"
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sudo rm -f ${_trezor_suite_asc_file_path}"
+  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sudo rm -f ${s_trezor_suite_asc_file_path}"
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo rm -fR /home/user/squashfs-root'
   
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo apt -y autoremove && apt -y autoclean'
@@ -510,12 +512,5 @@ utils::pause
   declare _git_trezor_repo=''
   declare _trezor_release_url=''
 
-  declare _trezor_suite_file_name=''
-  declare _trezor_suite_asc_file_name=''
-  declare _trezor_suite_file_path=''
-  declare _trezor_suite_asc_file_path=''
-
-  declare _trezor_suite_app_url=''
-  declare _trezor_suite_asc_url=''
 
 main
