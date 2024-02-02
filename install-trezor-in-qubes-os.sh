@@ -158,7 +158,7 @@ function utils::update_to_new_fedora_template(){
                     grep -w 'Running' | \
                     grep -w 'sys-usb' | \
                     awk '{print $1}' | \
-                    grep -vw 'sys-usb' ) ;
+                    grep -vw 'sys-usb' ));
   do
     utils::ui::print::info "qvm-shutdown --wait ${vmname}"
     sudo qvm-shutdown --wait "${vmname}" ;
@@ -169,7 +169,7 @@ function utils::update_to_new_fedora_template(){
                     grep -w 'Running' | \
                     grep -w 'sys-firewall' | \
                     awk '{print $1}' | \
-                    grep -vw 'sys-firewall' ) ;
+                    grep -vw 'sys-firewall' ));
   do
     utils::ui::print::info "qvm-shutdown --wait ${vmname}"
     sudo qvm-shutdown --wait "${vmname}" ;
@@ -180,7 +180,7 @@ function utils::update_to_new_fedora_template(){
                     grep -w 'Running' | \
                     grep -w 'sys-net' | \
                     awk '{print $1}' | \
-                    grep -vw 'sys-net' ) ;
+                    grep -vw 'sys-net' ));
   do
     utils::ui::print::info "qvm-shutdown --wait ${vmname}"
     sudo qvm-shutdown --wait "${vmname}" ;
@@ -192,7 +192,7 @@ function utils::update_to_new_fedora_template(){
                     grep -w 'Running' | \
                     grep -Pw "\b${_old_fedora_dvm_template_name}(\s|$)" | \
                     awk '{print $1}' | \
-                    grep -Pwv "\b${_old_fedora_dvm_template_name}(\s|$)" ;
+                    grep -Pwv "\b${_old_fedora_dvm_template_name}(\s|$)");
   do
     utils::ui::print::info "qvm-shutdown --wait ${vmname}"
     sudo qvm-shutdown --wait "${vmname}";
@@ -204,7 +204,7 @@ function utils::update_to_new_fedora_template(){
                     grep -w 'Running' | \
                     grep -w "\b${_old_fedora_template_name}(\s|$)" | \
                     awk '{print $1}' | \
-                    grep -Pwv "\b${_old_fedora_template_name}(\s|$)" ;
+                    grep -Pwv "\b${_old_fedora_template_name}(\s|$)");
   do
     utils::ui::print::info "qvm-shutdown --wait ${vmname}"
     sudo qvm-shutdown --wait "${vmname}";
