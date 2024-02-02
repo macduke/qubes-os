@@ -668,6 +668,8 @@ function utils::ui::print::errorX() {
 # MAIN 
 ###############################################################################
 function main(){
+  # Version 0.0.1
+
   utils::ui::print::function_line_in
   # Running Qubes Update
   #sudo qubes-update-qui
@@ -681,7 +683,8 @@ function main(){
 
   utils::check_if_online
   init::variables
-utils::pause
+
+  utils::pause
   # Update Templates in dom0
   #sudo qubesctl --skip-dom0 --templates state.sls update.qubes-vm
 
