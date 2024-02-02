@@ -210,15 +210,24 @@ function utils::update_to_new_fedora_template(){
     sudo qvm-shutdown --wait "${vmname}";
   done
 
+  utils::ui::print::info "Shutting all vms!"
+  sudo qvm-shutdown --wait --all
+  utils::ui::print::info "Shutting down all vms done!"
 
-
+  utils::ui::print::info "Changing template of sys-usb to ${_fedora_sys_dvm_template_name}"
   sudo qvm-shutdown --wait sys-usb; sudo qvm-prefs sys-usb template ${_fedora_sys_dvm_template_name};
 
+  utils::ui::print::info "Changing template of sys-backup to ${_fedora_template_name}"
   sudo qvm-prefs sys-backup template ${_fedora_template_name};
+
+  utils::ui::print::info "Changing template of sys-net to ${_fedora_template_name}"
   sudo qvm-prefs sys-net template ${_fedora_template_name};
+
+  utils::ui::print::info "Changing template of default-mgmt-dvm to ${_fedora_template_name}"
   sudo qvm-prefs default-mgmt-dvm template ${_fedora_template_name};
+
+  utils::ui::print::info "Changing template of sys-firewall to ${_fedora_dvm_template_name}"
   sudo qvm-prefs sys-firewall template ${_fedora_dvm_template_name};
-  sudo qvm-prefs sys-usb template ${_fedora_sys_dvm_template_name}; 
 
   # Start all vms
   for vmname in sys-usb sys-net sys-firewall sys-backup;
@@ -226,9 +235,6 @@ function utils::update_to_new_fedora_template(){
     sudo qvm-start --skip-if-running "${vmname}" ;
   done
 
-  utils::remove_old_fedora_templates
-
-  utils::clone_whonix_to_a_whonix_crypto
   utils::ui::print::function_line_out
 }
 
@@ -680,6 +686,10 @@ utils::pause
   #sudo qubesctl --skip-dom0 --templates state.sls update.qubes-vm
 
   utils::update_to_new_fedora_template
+utils::pause
+  utils::remove_old_fedora_templates
+utils::pause
+  utils::clone_whonix_to_a_whonix_crypto
 utils::pause
   trezor::config::dom0
 utils::pause
