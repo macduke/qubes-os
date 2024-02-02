@@ -677,7 +677,7 @@ function main(){
   init::variables
 utils::pause
   # Update Templates in dom0
-  sudo qubesctl --skip-dom0 --templates state.sls update.qubes-vm
+  #sudo qubesctl --skip-dom0 --templates state.sls update.qubes-vm
 
   utils::update_to_new_fedora_template
 utils::pause
