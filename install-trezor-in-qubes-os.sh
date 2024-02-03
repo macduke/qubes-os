@@ -60,8 +60,8 @@ function utils::update_global_templates(){
 ###############################################################################
 function utils::remove_old_fedora_templates(){
   utils::ui::print::function_line_in
-  sudo qvm-remove --quiet "${_old_fedora_template_name}"
   sudo qvm-remove --quiet "${_old_fedora_dvm_template_name}"
+  sudo qvm-remove --quiet "${_old_fedora_template_name}"
   utils::ui::print::function_line_out
 }
 
@@ -289,6 +289,8 @@ function trezor::config::listening_port(){
   local i_result=0
   s_tcp_listen_line='socat TCP-LISTEN:21325,fork EXEC:"qrexec-client-vm sys-usb trezord-service" &'
 
+  utils::ui::print::info "Adding ${s_tcp_listen_line} to ${_whonix_ws_trezor_wm_name} rc.local"
+  #
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sudo cat /rw/config/rc.local | grep -q 'socat TCP-LISTEN:21325'" || i_result=$?
   if [[ ${i_result} == 1 ]]
   then
@@ -303,13 +305,31 @@ function trezor::config::listening_port(){
 ###############################################################################
 function trezor::config::install_packages(){
   utils::ui::print::function_line_in
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo apt update && sudo apt -y install curl'
+  local s_warn_msg=''
+
+  s_warn_msg="Waiting till whonix can reach the internet."
+  qvm-run --wait sys-whonix
+
+  while true
+  do
+    if qvm-run -q ${_whonix_ws_trezor_wm_name} 'curl --max-time 5 --silent --head deb.debian.org'
+    then
+      break
+    else
+      utils::ui::print::warn "${s_warn_msg}"
+      sleep 10
+      continue
+    fi
+  done
+
+  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo apt update'
+  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo apt -y install curl'
 
   # Install needed packages on the whonix trezor Appws
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo apt update && sudo apt -y install gpg'
+  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo apt -y install gpg'
 
   # Install pip
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo apt update && sudo apt -y install pip'
+  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo apt -y install pip'
   # Install the trezor package
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'pip3 install --user trezor'
   utils::ui::print::function_line_out
