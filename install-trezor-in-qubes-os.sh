@@ -77,12 +77,19 @@ function utils::clone_whonix_to_a_whonix_crypto(){
 
   sudo qvm-shutdown --wait whonix-ws-16
 
-  sudo qvm-clone whonix-ws-16 ${_whonix_ws_crypto_template_name}
+  # Check if the new whonix template is already installed
+  if qvm-ls | awk '{print $1}' | grep -Pw "\b${_whonix_ws_crypto_template_name}(\s|$)"
+  then
+    utils::ui::print::info "Template ${_whonix_ws_crypto_template_name} is already cloned."
+  else
+    utils::ui::print::info "Cloning whonix-ws-16 to ${_whonix_ws_crypto_template_name}."
+    sudo qvm-clone whonix-ws-16 ${_whonix_ws_crypto_template_name}
+  fi
+
   sudo qvm-prefs sys-net template ${_whonix_ws_crypto_template_name}
 
-  sudo qvm-run --pass-io ${_whonix_ws_crypto_template_name} 'sudo apt-get install -y jq'
-  sudo qvm-run --pass-io ${_whonix_ws_crypto_template_name} 'sudo apt-get install -y jq'
-  
+#  sudo qvm-run --pass-io ${_whonix_ws_crypto_template_name} 'sudo apt-get install -y jq'
+
   sudo qvm-shutdown --wait ${_whonix_ws_crypto_template_name}
 
   # Create a Whonix AppVM based on your new Crypto Whonix template which you will now use Trezor on.
@@ -308,11 +315,11 @@ function trezor::config::install_packages(){
   local s_warn_msg=''
 
   s_warn_msg="Waiting till whonix can reach the internet."
-  qvm-run --wait sys-whonix
+  qvm-run --skip-if-running sys-whonix
 
   while true
   do
-    if qvm-run -q ${_whonix_ws_trezor_wm_name} 'curl --max-time 5 --silent --head deb.debian.org'
+    if qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'curl --max-time 5 --silent --head deb.debian.org'
     then
       break
     else
@@ -366,7 +373,7 @@ function trezor::config::fedora_sys_dvm_template(){
 
 ############################## CONFIG FEDORA-XX-SYS ###########################
 ############################# INSTALL Trezor Bridge ###########################
-function trezor::config::trezor-bridge(){
+function trezor::config::trezor_bridge(){
   utils::ui::print::function_line_in
   local s_trezor_bridge_file_name=''
   local s_trezor_bridge_file_url=''
@@ -412,7 +419,7 @@ __EOF__
 
   # Config and install udev rules in fedora-XX-sys
   cat /tmp/51-trezor.rules | \
-    qvm-run --pass-io ${_fedora_sys_template_name} "sudo cat > ${s_trezor_udev_rules_file}"
+    qvm-run --pass-io ${_fedora_sys_template_name} "sudo tee ${s_trezor_udev_rules_file}"
   qvm-run --pass-io ${_fedora_sys_template_name} "sudo chmod +x ${s_trezor_udev_rules_file}"
   qvm-shutdown --wait ${_fedora_sys_template_name}
   utils::ui::print::function_line_out
@@ -421,23 +428,30 @@ __EOF__
 ###############################################################################
 # Function
 ###############################################################################
-function trezor::install::trezor-common::fedora_xx_sys(){
+function trezor::install::trezor_common::fedora_xx_sys(){
   utils::ui::print::function_line_in
-  # Allow Network access for fedora-XX-sys
+  # 
   qvm-shutdown --wait ${_fedora_sys_template_name}
+
+  utils::ui::print::info "Allow Network access for fedora-XX-sys"
   qvm-prefs --set ${_fedora_sys_template_name} netvm sys-firewall
+
   # Install the trezor common package
-  qvm-run --pass-io ${_fedora_sys_template_name} "sudo dnf -y trezor-common"
+  utils::ui::print::info "qvm-run --pass-io ${_fedora_sys_template_name} sudo dnf -y install trezor-common"
+  qvm-run --pass-io ${_fedora_sys_template_name} "sudo dnf -y install trezor-common"
   qvm-shutdown --wait ${_fedora_sys_template_name}
-  # Remove Network access for fedora-XX-sys
+
+  utils::ui::print::info "Remove Network access for fedora-XX-sys"
   qvm-prefs --set ${_fedora_sys_template_name} netvm none
+
+  qvm-shutdown --wait ${_fedora_sys_template_name}
   utils::ui::print::function_line_out
 }
 
 ###############################################################################
 # Function
 ###############################################################################
-function trezor::config::whonix-ws-trezor(){
+function trezor::config::whonix_ws_trezor(){
   utils::ui::print::function_line_in
   local s_satoshilaps_private_key=''
   local s_satoshilaps_private_key_url=''
@@ -454,8 +468,9 @@ function trezor::config::whonix-ws-trezor(){
   s_satoshilaps_private_key_url="https://trezor.io/security/${s_satoshilaps_private_key}"
   s_satoshilaps_local_path="/home/user/${s_satoshilaps_private_key}"
 
-
-  # Get the JSON data of the newest release
+  # _git_trezor_repo='trezor/trezor-suite'
+  # _trezor_release_url="https://api.github.com/repos/${_git_trezor_repo}/releases/latest"
+  utils::ui::print::info "Get the JSON data of the newest release"
   _json_git_response=$(qvm-run --pass-io ${_fedora_dvm_template_name} "curl -s ${_trezor_release_url}")
 
   # Neueste Release-Version aus den JSON-Daten extrahieren
@@ -464,10 +479,10 @@ function trezor::config::whonix-ws-trezor(){
                             grep -o '[^"]*$')
 
   # Trezor-release-url for the Linux x86_64 AppImage
-  s_trezor_suite_app_url=$(qvm-run --pass-io ${_fedora_dvm_template_name} "printf '%s' ${_json_git_response} | jq -r '.assets[] | select(.name | endswith('linux-x86_64.AppImage')) | .browser_download_url'")
+  s_trezor_suite_app_url=$(printf '%s' ${_json_git_response} | jq -r '.assets[] | select(.name | endswith("linux-x86_64.AppImage")) | .browser_download_url')
 
   # Trezor-release-url for the Linux x86_64 AppImage asc file
-  s_trezor_suite_asc_url=$(qvm-run --pass-io ${_fedora_dvm_template_name} "printf '%s' ${_json_git_response} | jq -r '.assets[] | select(.name | endswith('linux-x86_64.AppImage.asc)) | .browser_download_url'")
+  s_trezor_suite_asc_url=$(printf '%s' ${_json_git_response} | jq -r '.assets[] | select(.name | endswith("linux-x86_64.AppImage.asc")) | .browser_download_url')
 
   s_trezor_suite_file_name="Trezor-Suite-${_latest_trezor_version}-linux-x86_64.AppImage"
   s_trezor_suite_asc_file_name="Trezor-Suite-${_latest_trezor_version}-linux-x86_64.AppImage.asc"
@@ -722,13 +737,13 @@ utils::pause
 utils::pause
   trezor::config::fedora_sys_dvm_template
 utils::pause
-  trezor::config::trezor-bridge
+  trezor::config::trezor_bridge
 utils::pause
   trezor::create::udev_rule_file
 utils::pause
-  trezor::install::trezor-common::fedora_xx_sys
+  trezor::install::trezor_common::fedora_xx_sys
 utils::pause
-  trezor::config::whonix-ws-trezor
+  trezor::config::whonix_ws_trezor
 utils::pause
   utils::ui::print::function_line_in
   utils::ui::print::info "Trezor Suite downloaded and installed!"
