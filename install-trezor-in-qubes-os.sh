@@ -50,6 +50,33 @@ function utils::update_os::fedora(){
 ###############################################################################
 # 
 ###############################################################################
+function utils::qvm::update_all_templates(){
+  utils::ui::print::function_line_in
+  sudo qubesctl --skip-dom0 \
+                --max-concurrency 2 \
+                --templates \
+                state.sls \
+                update.qubes-vm
+  utils::ui::print::function_line_out
+}
+
+###############################################################################
+# 
+###############################################################################
+function utils::qvm::update_vm(){
+  utils::ui::print::function_line_in
+  local    p_vm="${1}" ; shift
+  sudo qubesctl --skip-dom0 \
+                --max-concurrency 2 \
+                --targets="${p_vm}" \
+                state.sls \
+                update.qubes-vm
+  utils::ui::print::function_line_out
+}
+
+###############################################################################
+# 
+###############################################################################
 function utils::update_global_templates(){
   utils::ui::print::function_line_in
   # That the global default template and default disposable template
@@ -121,22 +148,21 @@ function utils::clone_whonix_to_a_whonix_crypto(){
     sudo qvm-clone ${_whonix_ws_template_name} ${_whonix_ws_crypto_template_name}
   fi
 
-  sudo qvm-prefs sys-net template ${_whonix_ws_crypto_template_name}
-
-#  sudo qvm-run --pass-io ${_whonix_ws_crypto_template_name} 'sudo apt-get install -y jq'
-
   sudo qvm-shutdown --wait ${_whonix_ws_crypto_template_name}
 
   # Create a Whonix AppVM based on your new Crypto Whonix template which you will now use Trezor on.
   utils::ui::print::info "Creating Whonix AppVM dedicated to Trezor ${_whonix_ws_trezor_wm_name}."
-
   # Create Trezor AppVM (whonix-ws-16-crypto) from Template whonix-ws-16-crypto
-  sudo qvm-create --verbose \
-                  --class=AppVM \
-                  --template=${_whonix_ws_crypto_template_name} \
-                  --label=purple \
-                  "${_whonix_ws_trezor_wm_name}"
-
+  if qvm-ls | awk '{print $1}' | grep -Pw "\b${_whonix_ws_trezor_wm_name}(\s|$)"
+  then
+    utils::ui::print::info "${_whonix_ws_trezor_wm_name} already exists. Skipping."
+  else
+    sudo qvm-create --verbose \
+                    --class=AppVM \
+                    --template=${_whonix_ws_crypto_template_name} \
+                    --label=purple \
+                    "${_whonix_ws_trezor_wm_name}"
+  fi
   utils::ui::print::function_line_out
 }
 
@@ -350,7 +376,7 @@ function trezor::config::install_packages(){
   local s_warn_msg=''
 
   s_warn_msg="Waiting till whonix can reach the internet."
-  qvm-run --skip-if-running sys-whonix
+  qvm-start --skip-if-running sys-whonix
 
   while true
   do
@@ -761,6 +787,8 @@ function main(){
   utils::update_to_new_fedora_template
 utils::pause
   utils::remove_old_fedora_templates
+utils::pause
+  utils::qvm::update_all_templates
 utils::pause
   utils::clone_whonix_to_a_whonix_crypto
 utils::pause
