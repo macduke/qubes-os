@@ -131,6 +131,9 @@ function utils::qvm::remove_template(){
 ###############################################################################
 function utils::clone_whonix_to_a_whonix_crypto(){
   utils::ui::print::function_line_in
+
+  utils::qvm::update_vm "${_whonix_ws_template_name}"
+
   # Create a new whonix template for cryptocurrency
   sudo qvm-run --pass-io ${_whonix_ws_template_name} 'sudo apt -y autoremove'
   sudo qvm-run --pass-io ${_whonix_ws_template_name} 'sudo apt -y autoclean'
@@ -184,6 +187,7 @@ function utils::update_to_new_fedora_template(){
   else
     sudo qubes-dom0-update qubes-template-${_fedora_template_name}
     utils::update_os::fedora
+    utils::qvm::update_vm "${_fedora_template_name}"
   fi
 
   if qvm-ls | awk '{print $1}' | grep -w "^${_fedora_sys_template_name}$"
@@ -442,11 +446,11 @@ function trezor::config::trezor_bridge(){
   local s_cmd_line=''
 
   s_cmd_line="curl -sL https://data.trezor.io/bridge/latest/ | grep -o 'trezor-bridge-[0-9\.]*[0-9\-]*.x86_64.rpm'"
-  s_trezor_bridge_file_name=$(qvm-run --pass-io ${_fedora_dvm_template_name} "${s_cmd_line}")
+  s_trezor_bridge_file_name=$(qvm-run --pass-io --dispvm ${_fedora_dvm_template_name} "${s_cmd_line}")
   s_trezor_bridge_file_url="https://data.trezor.io/bridge/latest/${s_trezor_bridge_file_name}"
 
   # Download and Import the signing key
-  qvm-run --pass-io ${_fedora_dvm_template_name} "curl -L ${s_trezor_bridge_file_url}" | \
+  qvm-run --pass-io --dispvm ${_fedora_dvm_template_name} "curl -L ${s_trezor_bridge_file_url}" | \
       qvm-run --pass-io ${_fedora_sys_template_name} "cat > /tmp/${s_trezor_bridge_file_name}"
   qvm-run --pass-io ${_fedora_sys_template_name} "chmod u+x /tmp/${s_trezor_bridge_file_name}"
   qvm-run --pass-io ${_fedora_sys_template_name} "sudo rpm -i /tmp/${s_trezor_bridge_file_name}"
@@ -532,7 +536,7 @@ function trezor::config::whonix_ws_trezor(){
   # _git_trezor_repo='trezor/trezor-suite'
   # _trezor_release_url="https://api.github.com/repos/${_git_trezor_repo}/releases/latest"
   utils::ui::print::info "Get the JSON data of the newest release"
-  _json_git_response=$(qvm-run --pass-io ${_fedora_dvm_template_name} "curl -s ${_trezor_release_url}")
+  _json_git_response=$(qvm-run --pass-io --dispvm ${_fedora_dvm_template_name} "curl -s ${_trezor_release_url}")
 
   # Neueste Release-Version aus den JSON-Daten extrahieren
   _latest_trezor_version=$(printf '%s' "${_json_git_response}" | \
@@ -552,16 +556,16 @@ function trezor::config::whonix_ws_trezor(){
 
   # Newest Release-Asset (Linux x86_64 AppImage) Trezor-Suite-24.1.2-linux-x86_64
   utils::ui::print::info "Getting Trezor Suite version ${_latest_trezor_version} (AppImage)..."
-  qvm-run --pass-io ${_fedora_dvm_template_name} "curl -L ${s_trezor_suite_app_url}" | \
+  qvm-run --pass-io --dispvm ${_fedora_dvm_template_name} "curl -L ${s_trezor_suite_app_url}" | \
     qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "cat > ${s_trezor_suite_file_path}"
 
   # Download asc-file
   utils::ui::print::info "Loading signature file for the trezor suite version ${_latest_trezor_version}..."
-  qvm-run --pass-io ${_fedora_dvm_template_name} "curl -L ${s_trezor_suite_asc_url}" | \
+  qvm-run --pass-io --dispvm ${_fedora_dvm_template_name} "curl -L ${s_trezor_suite_asc_url}" | \
     qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "cat > ${s_trezor_suite_asc_file_path}"
 
   # Download and Import the signing key
-  qvm-run --pass-io ${_fedora_dvm_template_name} "curl -L ${s_satoshilaps_private_key_url}" | \
+  qvm-run --pass-io --dispvm ${_fedora_dvm_template_name} "curl -L ${s_satoshilaps_private_key_url}" | \
       qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "cat > ${s_satoshilaps_local_path}"
 
   # Import the public key of the Satoshilabs. This is necessary to check the downloaded trezor suite
@@ -808,8 +812,8 @@ utils::pause
 utils::pause
   trezor::config::whonix_ws_trezor
 utils::pause
-  utils::ui::print::function_line_in
   utils::ui::print::info "Trezor Suite downloaded and installed!"
+  utils::ui::print::function_line_out
 }
 
   declare _old_fedora_template_name=''
