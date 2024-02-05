@@ -14,6 +14,9 @@ function init::variables(){
   _fedora_sys_template_name='fedora-38-sys'
   _fedora_sys_dvm_template_name='fedora-38-sys-dvm'
 
+  _whonix_ws_template_name='whonix-ws-16'
+  _whonix_gw_template_name='whonix-gw-16'
+
   _whonix_ws_crypto_template_name='whonix-ws-16-crypto'
   _whonix_ws_trezor_wm_name='whonix-ws-16-trezor'
 
@@ -27,7 +30,7 @@ function init::variables(){
 ###############################################################################
 # 
 ###############################################################################
-function fedora::update_the_system(){
+function utils::update_os::fedora(){
   utils::ui::print::function_line_in
   local    p_system="${1}" ; shift
   # Not sure if necessary 
@@ -36,7 +39,10 @@ function fedora::update_the_system(){
   qvm-run --pass-io ${p_system} 'sudo dnf -y update'
   qvm-run --pass-io ${p_system} 'sudo dnf -y upgrade'
   qvm-run --pass-io ${p_system} 'sudo dnf -y clean all'
+
+  utils::ui::print::info 'sudo fstrim -av'
   qvm-run --pass-io ${p_system} 'sudo fstrim -av'
+
   qvm-shutdown --wait ${p_system}
   utils::ui::print::function_line_out
 }
@@ -48,9 +54,19 @@ function utils::update_global_templates(){
   utils::ui::print::function_line_in
   # That the global default template and default disposable template
   # fedora-XX
-  sudo qubes-prefs --set default_template ${_fedora_template_name}
+  if qubes-prefs --get default_template | awk '{print $1}' | grep -w "^${_fedora_template_name}$"
+  then
+    utils::ui::print::info "${_fedora_template_name} is already the default global template."
+  else
+    sudo qubes-prefs --set default_template ${_fedora_template_name}
+  fi
   # fedora-XX-dvm
-  sudo qubes-prefs --set default_dispvm ${_fedora_dvm_template_name}
+  if qubes-prefs --get default_dispvm | awk '{print $1}' | grep -w "^${_fedora_dvm_template_name}$"
+  then
+    utils::ui::print::info "${_fedora_dvm_template_name} is already the default disposable global template."
+  else
+    sudo qubes-prefs --set default_dispvm ${_fedora_dvm_template_name}
+  fi
   utils::ui::print::function_line_out
 }
 
@@ -60,8 +76,26 @@ function utils::update_global_templates(){
 ###############################################################################
 function utils::remove_old_fedora_templates(){
   utils::ui::print::function_line_in
-  sudo qvm-remove --quiet "${_old_fedora_dvm_template_name}"
-  sudo qvm-remove --quiet "${_old_fedora_template_name}"
+  utils::qvm::remove_template "${_old_fedora_template_name}"
+  utils::qvm::remove_template "${_old_fedora_dvm_template_name}"
+  utils::ui::print::function_line_out
+}
+
+###############################################################################
+# _old_fedora_template_name='fedora-36'
+# _old_fedora_dvm_template_name='fedora-36-dvm'
+###############################################################################
+function utils::qvm::remove_template(){
+  utils::ui::print::function_line_in
+  local    p_template="${1}" ; shift
+
+  if qvm-ls | awk '{print $1}' | grep -w "^${p_template}$"
+  then
+    sudo qvm-remove --quiet "${p_template}"
+  else
+    utils::ui::print::warn "Template ${p_template} not found."
+    utils::ui::print::warn "Or already removed."
+  fi
   utils::ui::print::function_line_out
 }
 
@@ -71,19 +105,20 @@ function utils::remove_old_fedora_templates(){
 function utils::clone_whonix_to_a_whonix_crypto(){
   utils::ui::print::function_line_in
   # Create a new whonix template for cryptocurrency
-  sudo qvm-run --pass-io whonix-ws-16 'sudo apt -y autoremove'
-  sudo qvm-run --pass-io whonix-ws-16 'sudo apt -y autoclean'
-  sudo qvm-run --pass-io whonix-ws-16 'sudo fstrim -av'
+  sudo qvm-run --pass-io ${_whonix_ws_template_name} 'sudo apt -y autoremove'
+  sudo qvm-run --pass-io ${_whonix_ws_template_name} 'sudo apt -y autoclean'
 
-  sudo qvm-shutdown --wait whonix-ws-16
+  sudo qvm-run --pass-io ${_whonix_ws_template_name} 'sudo fstrim -av'
+
+  sudo qvm-shutdown --wait ${_whonix_ws_template_name}
 
   # Check if the new whonix template is already installed
   if qvm-ls | awk '{print $1}' | grep -Pw "\b${_whonix_ws_crypto_template_name}(\s|$)"
   then
     utils::ui::print::info "Template ${_whonix_ws_crypto_template_name} is already cloned."
   else
-    utils::ui::print::info "Cloning whonix-ws-16 to ${_whonix_ws_crypto_template_name}."
-    sudo qvm-clone whonix-ws-16 ${_whonix_ws_crypto_template_name}
+    utils::ui::print::info "Cloning ${_whonix_ws_template_name} to ${_whonix_ws_crypto_template_name}."
+    sudo qvm-clone ${_whonix_ws_template_name} ${_whonix_ws_crypto_template_name}
   fi
 
   sudo qvm-prefs sys-net template ${_whonix_ws_crypto_template_name}
@@ -122,7 +157,7 @@ function utils::update_to_new_fedora_template(){
     utils::ui::print::info "Template ${_fedora_template_name} is already installed."
   else
     sudo qubes-dom0-update qubes-template-${_fedora_template_name}
-    fedora::update_the_system
+    utils::update_os::fedora
   fi
 
   if qvm-ls | awk '{print $1}' | grep -w "^${_fedora_sys_template_name}$"
