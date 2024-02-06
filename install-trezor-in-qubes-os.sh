@@ -551,6 +551,7 @@ function trezor::config::whonix_ws_trezor(){
                             grep -o '"tag_name": "[^"]*' | \
                             grep -o '[^"]*$')
 
+  utils::ui::print::info "Trezor Suite Version is ${_latest_trezor_version}"
 
   cat > '/tmp/gettrezorurl.sh' << '__EOF__'
 #!/bin/bash
@@ -566,6 +567,9 @@ __EOF__
   # Trezor-release-url for the Linux x86_64 AppImage
   s_trezor_suite_app_url=$(cat /tmp/gettrezorurl.sh | \
     qvm-run --pass-io --dispvm ${_fedora_dvm_template_name} "cat > /tmp/gettrezorurl.sh && chmod +x /tmp/gettrezorurl.sh && /tmp/gettrezorurl.sh")
+
+  utils::ui::print::info "Trezor Suite download url: ${s_trezor_suite_app_url}"
+
 
   # Trezor-release-url for the Linux x86_64 AppImage asc file
   s_trezor_suite_asc_url="${s_trezor_suite_app_url}.asc"
@@ -618,11 +622,9 @@ __EOF__
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'cp -a /home/user/squashfs-root/trezor-suite.desktop /home/user/.local/share/applications/'
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'cp -a /home/user/squashfs-root/usr/share/icons/hicolor/0x0/apps/trezor-suite.png /home/user/.local/share/icons/'
 
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sed -i 's|^Exec=.*|Exec=/opt/trezor-suite/trezor-suite.AppImage|' /home/user/"
-
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo mkdir -p /opt/trezor-suite'
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sudo mv ${s_trezor_suite_file_path} /opt/trezor-suite"
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "ln /opt/trezor-suite/${s_trezor_suite_file_name} /opt/trezor-suite/trezor-suite.AppImage"
+  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sudo mv ${s_trezor_suite_file_path} /opt/trezor-suitei/"
+  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sudo ln /opt/trezor-suite/${s_trezor_suite_file_name} /opt/trezor-suite/trezor-suite.AppImage"
 
   # Add trezor-suite to Appmenu
   s_app_whitelist=$(qvm-appmenus ${_whonix_ws_trezor_wm_name} --get-whitelist)
