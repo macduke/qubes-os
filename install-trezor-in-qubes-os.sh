@@ -570,7 +570,6 @@ __EOF__
 
   utils::ui::print::info "Trezor Suite download url: ${s_trezor_suite_app_url}"
 
-
   # Trezor-release-url for the Linux x86_64 AppImage asc file
   s_trezor_suite_asc_url="${s_trezor_suite_app_url}.asc"
 
@@ -622,8 +621,9 @@ __EOF__
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'cp -a /home/user/squashfs-root/trezor-suite.desktop /home/user/.local/share/applications/'
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'cp -a /home/user/squashfs-root/usr/share/icons/hicolor/0x0/apps/trezor-suite.png /home/user/.local/share/icons/'
 
+  utils::ui::print::info 'sudo mkdir -p /opt/trezor-suite'
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo mkdir -p /opt/trezor-suite'
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sudo mv ${s_trezor_suite_file_path} /opt/trezor-suitei/"
+  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sudo mv ${s_trezor_suite_file_path} /opt/trezor-suite/"
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sudo ln /opt/trezor-suite/${s_trezor_suite_file_name} /opt/trezor-suite/trezor-suite.AppImage"
 
   # Add trezor-suite to Appmenu
