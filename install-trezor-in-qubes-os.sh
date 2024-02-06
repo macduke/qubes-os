@@ -621,15 +621,14 @@ __EOF__
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'cp -a /home/user/squashfs-root/trezor-suite.desktop /home/user/.local/share/applications/'
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'cp -a /home/user/squashfs-root/usr/share/icons/hicolor/0x0/apps/trezor-suite.png /home/user/.local/share/icons/'
 
-  utils::ui::print::info 'sudo mkdir -p /opt/trezor-suite'
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo mkdir -p /opt/trezor-suite'
+  utils::ui::print::info 'sudo mkdir -vp /opt/trezor-suite'
+  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo mkdir -vp /opt/trezor-suite'
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sudo mv ${s_trezor_suite_file_path} /opt/trezor-suite/"
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sudo ln /opt/trezor-suite/${s_trezor_suite_file_name} /opt/trezor-suite/trezor-suite.AppImage"
 
   # Add trezor-suite to Appmenu
   s_app_whitelist=$(qvm-appmenus ${_whonix_ws_trezor_wm_name} --get-whitelist)
-  utils::ui::print::info "${s_app_whitelist}\ntrezor-suite.desktop"
-  printf '%b\n' "${s_app_whitelist}" | qvm-appmenus ${_whonix_ws_trezor_wm_name} --set-whitelist -
+  printf '%b\n' "${s_app_whitelist}\ntrezor-suite.desktop" | qvm-appmenus ${_whonix_ws_trezor_wm_name} --set-whitelist -
   qvm-appmenus --update --force ${_whonix_ws_trezor_wm_name}
 
   qvm-sync-appmenus ${_whonix_ws_trezor_wm_name}
