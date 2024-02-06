@@ -533,6 +533,14 @@ function trezor::config::whonix_ws_trezor(){
   s_satoshilaps_private_key_url="https://trezor.io/security/${s_satoshilaps_private_key}"
   s_satoshilaps_local_path="/home/user/${s_satoshilaps_private_key}"
 
+  qvm-run --pass-io ${_fedora_dvm_template_name} 'sudo dnf -y install jq'
+  qvm-shutdown --wait ${_fedora_dvm_template_name}
+
+  if [[ -n $(qvm-ls --quiet --running --raw-list ${_fedora_dvm_template_name}) ]]
+  then
+    qvm-shutdown --wait --force ${_fedora_dvm_template_name}
+  fi
+
   # _git_trezor_repo='trezor/trezor-suite'
   # _trezor_release_url="https://api.github.com/repos/${_git_trezor_repo}/releases/latest"
   utils::ui::print::info "Get the JSON data of the newest release"
@@ -543,11 +551,24 @@ function trezor::config::whonix_ws_trezor(){
                             grep -o '"tag_name": "[^"]*' | \
                             grep -o '[^"]*$')
 
+
+  cat > '/tmp/gettrezorurl.sh' << '__EOF__'
+#!/bin/bash
+declare _git_trezor_repo='trezor/trezor-suite'
+declare _trezor_release_url="https://api.github.com/repos/${_git_trezor_repo}/releases/latest"
+declare _json_git_response="$(curl -s ${_trezor_release_url})"
+
+printf '%s' ${_json_git_response} | jq -r '.assets[] | select(.name | endswith("linux-x86_64.AppImage")) | .browser_download_url')
+printf '%s' "${s_trezor_suite_app_url}"
+__EOF__
+
+
   # Trezor-release-url for the Linux x86_64 AppImage
-  s_trezor_suite_app_url=$(printf '%s' ${_json_git_response} | jq -r '.assets[] | select(.name | endswith("linux-x86_64.AppImage")) | .browser_download_url')
+  s_trezor_suite_app_url=$(cat /tmp/gettrezorurl.sh | \
+    qvm-run --pass-io --dispvm ${_fedora_dvm_template_name} "cat > /tmp/gettrezorurl.sh && chmod +x /tmp/gettrezorurl.sh && /tmp/gettrezorurl.sh")
 
   # Trezor-release-url for the Linux x86_64 AppImage asc file
-  s_trezor_suite_asc_url=$(printf '%s' ${_json_git_response} | jq -r '.assets[] | select(.name | endswith("linux-x86_64.AppImage.asc")) | .browser_download_url')
+  s_trezor_suite_asc_url="${s_trezor_suite_app_url}.asc"
 
   s_trezor_suite_file_name="Trezor-Suite-${_latest_trezor_version}-linux-x86_64.AppImage"
   s_trezor_suite_asc_file_name="Trezor-Suite-${_latest_trezor_version}-linux-x86_64.AppImage.asc"
