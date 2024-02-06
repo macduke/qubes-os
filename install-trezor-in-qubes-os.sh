@@ -558,7 +558,7 @@ declare _git_trezor_repo='trezor/trezor-suite'
 declare _trezor_release_url="https://api.github.com/repos/${_git_trezor_repo}/releases/latest"
 declare _json_git_response="$(curl -s ${_trezor_release_url})"
 
-printf '%s' ${_json_git_response} | jq -r '.assets[] | select(.name | endswith("linux-x86_64.AppImage")) | .browser_download_url')
+s_trezor_suite_app_url=$(printf '%s' ${_json_git_response} | jq -r '.assets[] | select(.name | endswith("linux-x86_64.AppImage")) | .browser_download_url')
 printf '%s' "${s_trezor_suite_app_url}"
 __EOF__
 
