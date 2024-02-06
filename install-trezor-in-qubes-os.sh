@@ -613,7 +613,7 @@ __EOF__
   #qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "${s_trezor_suite_file_path} --appimage-extract trezor-suite.desktop"
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "${s_trezor_suite_file_path} --appimage-extract >/dev/null"
 
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sed -i 's|^Exec=.*|Exec=/opt/trezor-suite/trezor-suite.AppImage|' /home/user/squashfs-root/trezor-suite.desktop"
+  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sed -i 's|^Exec=.*|Exec=/home/user/trezor-suite/trezor-suite.AppImage|' /home/user/squashfs-root/trezor-suite.desktop"
   
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'mkdir -p /home/user/.local/share/applications'
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'mkdir -p /home/user/.local/share/icons'
@@ -621,10 +621,9 @@ __EOF__
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'cp -a /home/user/squashfs-root/trezor-suite.desktop /home/user/.local/share/applications/'
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'cp -a /home/user/squashfs-root/usr/share/icons/hicolor/0x0/apps/trezor-suite.png /home/user/.local/share/icons/'
 
-  utils::ui::print::info 'sudo mkdir -vp /opt/trezor-suite'
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo mkdir -vp /opt/trezor-suite'
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sudo mv ${s_trezor_suite_file_path} /opt/trezor-suite/"
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sudo ln /opt/trezor-suite/${s_trezor_suite_file_name} /opt/trezor-suite/trezor-suite.AppImage"
+  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo mkdir -vp /home/user/trezor-suite'
+  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sudo mv ${s_trezor_suite_file_path} /home/user/trezor-suite/"
+  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sudo ln /home/user/trezor-suite/${s_trezor_suite_file_name} /home/user/trezor-suite/trezor-suite.AppImage"
 
   # Add trezor-suite to Appmenu
   s_app_whitelist=$(qvm-appmenus ${_whonix_ws_trezor_wm_name} --get-whitelist)
