@@ -124,8 +124,8 @@ function utils::update_global_templates(){
 ###############################################################################
 function utils::remove_old_fedora_templates(){
   utils::ui::print::function_line_in
-  utils::qvm::remove_template "${_old_fedora_template_name}"
   utils::qvm::remove_template "${_old_fedora_dvm_template_name}"
+  utils::qvm::remove_template "${_old_fedora_template_name}"
   utils::ui::print::function_line_out
 }
 
