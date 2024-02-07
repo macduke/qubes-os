@@ -1,4 +1,25 @@
 #!/bin/bash
+###############################################################################
+# Script to install the trezor suite on qube-os.                              #
+# Copyright (C) 2024 Thorsten Seeger                                          #
+#                                                                             #
+#    This program is free software: you can redistribute it and/or modify     #
+#    it under the terms of the GNU General Public License as published by     #
+#    the Free Software Foundation, either version 3 of the License, or        #
+#    (at your option) any later version.                                      #
+#                                                                             #
+#    This program is distributed in the hope that it will be useful,          #
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of           #
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            #
+#    GNU General Public License for more details.                             #
+#                                                                             #
+#    You should have received a copy of the GNU General Public License        #
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.    #
+###############################################################################
+
+# 
+# https://is.gd/EkyLdG
+# https://t1p.de/sxzez
 
 ###############################################################################
 # INIT
@@ -30,7 +51,7 @@ function init::variables(){
 ###############################################################################
 # 
 ###############################################################################
-function utils::update_os::fedora(){
+function utils::fedora::update_os(){
   utils::ui::print::function_line_in
   local    p_system="${1}" ; shift
   # Not sure if necessary 
@@ -186,7 +207,7 @@ function utils::update_to_new_fedora_template(){
     utils::ui::print::info "Template ${_fedora_template_name} is already installed."
   else
     sudo qubes-dom0-update qubes-template-${_fedora_template_name}
-    utils::update_os::fedora
+    utils::fedora::update_os ${_fedora_template_name}
     utils::qvm::update_vm "${_fedora_template_name}"
   fi
 
