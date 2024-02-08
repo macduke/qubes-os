@@ -48,6 +48,8 @@ function init::variables(){
   _whonix_ws_crypto_template_name='whonix-ws-16-crypto'
   _whonix_ws_trezor_wm_name='whonix-ws-16-trezor'
 
+  _skip_all_template_updates='TRUE'
+
   # API-Endpunkt für die neueste Release-Version
   # GitHub repository
   _git_trezor_repo='trezor/trezor-suite'
@@ -79,6 +81,7 @@ function utils::fedora::update_os(){
 # 
 ###############################################################################
 function utils::qvm::update_all_templates(){
+  [[ ${_skip_all_template_updates^^} == 'TRUE' ]] && return 0
   utils::ui::print::function_line_in
   sudo qubesctl --skip-dom0 \
                 --max-concurrency 2 \
