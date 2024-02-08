@@ -97,6 +97,7 @@ function utils::qvm::update_all_templates(){
 function utils::qvm::update_vm(){
   utils::ui::print::function_line_in
   local    p_vm="${1}" ; shift
+  utils::ui::print::info "Updating ${p_vm}"
   sudo qubesctl --skip-dom0 \
                 --max-concurrency 2 \
                 --targets="${p_vm}" \
