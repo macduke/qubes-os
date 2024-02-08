@@ -317,8 +317,14 @@ function utils::update_to_new_fedora_template(){
   sudo qvm-shutdown --wait --all
   utils::ui::print::info "Shutting down all vms done!"
 
+  utils::ui::print::info "Changing template of ${_fedora_sys_dvm_template_name} to ${_fedora_sys_template_name}"
+  sudo qvm-shutdown --wait ${_fedora_sys_dvm_template_name};
+  sudo qvm-shutdown --wait ${_fedora_sys_template_name};
+  sudo qvm-prefs ${_fedora_sys_dvm_template_name} template ${_fedora_sys_template_name};
+
   utils::ui::print::info "Changing template of sys-usb to ${_fedora_sys_dvm_template_name}"
-  sudo qvm-shutdown --wait sys-usb; sudo qvm-prefs sys-usb template ${_fedora_sys_dvm_template_name};
+  sudo qvm-shutdown --wait sys-usb;
+  sudo qvm-prefs sys-usb template ${_fedora_sys_dvm_template_name};
 
   utils::ui::print::info "Changing template of sys-backup to ${_fedora_template_name}"
   sudo qvm-prefs sys-backup template ${_fedora_template_name};
@@ -476,6 +482,9 @@ function trezor::config::trezor_bridge(){
   s_trezor_bridge_file_name=$(qvm-run --pass-io --dispvm ${_fedora_dvm_template_name} "${s_cmd_line}")
   s_trezor_bridge_file_url="https://data.trezor.io/bridge/latest/${s_trezor_bridge_file_name}"
 
+  qvm-start --skip-if-running ${_fedora_dvm_template_name}
+  qvm-start --skip-if-running ${_fedora_sys_template_name}
+
   # Download and Import the signing key
   utils::ui::print::info "Downloading trezor-bridge with ${_fedora_dvm_template_name} and pipe to ${_fedora_sys_template_name}"
   qvm-run --pass-io --dispvm ${_fedora_dvm_template_name} "curl -L ${s_trezor_bridge_file_url}" | \
@@ -487,6 +496,10 @@ function trezor::config::trezor_bridge(){
   qvm-run --pass-io ${_fedora_sys_template_name} "sudo rpm -i /tmp/${s_trezor_bridge_file_name}"
   utils::ui::print::info "qvm-run --pass-io ${_fedora_sys_template_name} sudo rpm -i /tmp/${s_trezor_bridge_file_name}"
   qvm-run --pass-io ${_fedora_sys_template_name} "rm -f /tmp/${s_trezor_bridge_file_name}"
+
+  qvm-shutdown --wait ${_fedora_dvm_template_name}
+  qvm-shutdown --wait ${_fedora_sys_template_name}
+
   utils::ui::print::function_line_out
 }
 
