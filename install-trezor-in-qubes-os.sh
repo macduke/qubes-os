@@ -17,7 +17,9 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.    #
 ###############################################################################
 
-# 
+# qvm-template list --enablerepo=qubes-templates-community
+# qvm-template list
+
 # https://is.gd/EkyLdG
 # https://t1p.de/sxzez
 
@@ -415,14 +417,10 @@ function trezor::config::install_packages(){
     fi
   done
 
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo apt update'
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo apt -y install curl'
+  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo apt update && sudo apt -y install curl gpg pip'
 
-  # Install needed packages on the whonix trezor Appws
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo apt -y install gpg'
+  sleep 10
 
-  # Install pip
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo apt -y install pip'
   # Install the trezor package
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'pip3 install --user trezor'
   utils::ui::print::function_line_out
