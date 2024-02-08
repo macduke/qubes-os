@@ -23,6 +23,11 @@
 # https://is.gd/EkyLdG
 # https://t1p.de/sxzez
 
+
+# qvm-run --pass-io --dispvm fedora-36-dvm "curl -sL https://is.gd/EkyLdG" > install-trezor-in-qubes-os.sh && \
+# chmod +x install-trezor-in-qubes-os.sh && ./install-trezor-in-qubes-os.sh
+
+
 ###############################################################################
 # INIT
 ###############################################################################
