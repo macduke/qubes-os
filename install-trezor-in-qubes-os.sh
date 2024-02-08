@@ -477,10 +477,15 @@ function trezor::config::trezor_bridge(){
   s_trezor_bridge_file_url="https://data.trezor.io/bridge/latest/${s_trezor_bridge_file_name}"
 
   # Download and Import the signing key
+  utils::ui::print::info "Downloading trezor-bridge with ${_fedora_dvm_template_name} and pipe to ${_fedora_sys_template_name}"
   qvm-run --pass-io --dispvm ${_fedora_dvm_template_name} "curl -L ${s_trezor_bridge_file_url}" | \
       qvm-run --pass-io ${_fedora_sys_template_name} "cat > /tmp/${s_trezor_bridge_file_name}"
+  
+  utils::ui::print::info "qvm-run --pass-io ${_fedora_sys_template_name} chmod u+x /tmp/${s_trezor_bridge_file_name}"
   qvm-run --pass-io ${_fedora_sys_template_name} "chmod u+x /tmp/${s_trezor_bridge_file_name}"
+  utils::ui::print::info "qvm-run --pass-io ${_fedora_sys_template_name} chmod u+x /tmp/${s_trezor_bridge_file_name}"
   qvm-run --pass-io ${_fedora_sys_template_name} "sudo rpm -i /tmp/${s_trezor_bridge_file_name}"
+  utils::ui::print::info "qvm-run --pass-io ${_fedora_sys_template_name} sudo rpm -i /tmp/${s_trezor_bridge_file_name}"
   qvm-run --pass-io ${_fedora_sys_template_name} "rm -f /tmp/${s_trezor_bridge_file_name}"
   utils::ui::print::function_line_out
 }
@@ -664,7 +669,7 @@ __EOF__
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sudo rm -f ${s_trezor_suite_asc_file_path}"
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo rm -fR /home/user/squashfs-root'
   
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo apt -y autoremove && apt -y autoclean'
+  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo apt -y autoremove && sudo apt -y autoclean'
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo fstrim -av'
 
   qvm-shutdown --wait ${_whonix_ws_trezor_wm_name}
