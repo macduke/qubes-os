@@ -121,6 +121,15 @@ function utils::qvm::start_service_vms(){
 ###############################################################################
 # 
 ###############################################################################
+function utils::qvm::start(){
+  #utils::ui::print::function_line_in
+  sudo qvm-start --skip-if-running "${vmname}" ;
+  #utils::ui::print::function_line_out
+}
+
+###############################################################################
+# 
+###############################################################################
 function utils::qvm::shutdown(){
 #  utils::ui::print::function_line_in
   local    p_vm="${1}" ; shift
@@ -204,6 +213,74 @@ function utils::qvm::change_template(){
 ###############################################################################
 # 
 ###############################################################################
+function utils::qvm::clone_template(){
+  utils::ui::print::function_line_in
+  local    p_vm="${1}" ; shift
+  local    p_clone="${1}" ; shift
+
+  if qvm-ls | awk '{print $1}' | grep -Pw "\b${p_clone}(\s|$)"
+  then
+    utils::ui::print::info "Template ${p_clone} is already cloned."
+  else
+    utils::ui::print::info "Cloning ${p_vm} to ${p_clone}."
+    sudo qvm-clone ${p_vm} ${p_clone}
+  fi
+  utils::ui::print::function_line_out
+}
+
+###############################################################################
+# 
+###############################################################################
+function utils::qvm::create_dispvm_template(){
+  utils::ui::print::function_line_in
+  local    p_new_dispvm_template="${1}" ; shift
+  local    p_template="${1}" ; shift
+  local    p_label="${1}" ; shift
+  local    s_msg=''
+
+  if qvm-ls | awk '{print $1}' | grep -w "^${p_new_dispvm_template}$"
+  then
+    s_msg="Template ${p_new_dispvm_template} is already installed."
+    utils::ui::print::info "${s_msg}"
+  else
+    # Create a disposable vm template based on fedora-XX
+    qvm-create --verbose \
+               --template=${p_template} \
+               --label=${p_label} \
+               ${p_new_dispvm_template}
+    
+    qvm-prefs ${p_new_dispvm_template} template_for_dispvms True
+  fi
+  utils::ui::print::function_line_out
+}
+
+###############################################################################
+# 
+###############################################################################
+function utils::qvm::create_new_vm(){
+  utils::ui::print::function_line_in
+  local    p_new_vm="${1}" ; shift
+  local    p_template="${1}" ; shift
+  local    p_label="${1}" ; shift
+  local    s_msg=''
+  
+  if qvm-ls | awk '{print $1}' | grep -Pw "\b${p_new_vm}(\s|$)"
+  then
+    s_msg="${p_new_vm} already exists. Skipping."
+    utils::ui::print::info "${s_msg}"
+  else
+    sudo qvm-create --verbose \
+                    --class=AppVM \
+                    --template=${p_template} \
+                    --label=${p_label} \
+                    "${p_new_vm}"
+  fi
+  utils::ui::print::function_line_out
+}
+
+###############################################################################
+# 
+###############################################################################
 function utils::update_global_templates(){
   utils::ui::print::function_line_in
   # That the global default template and default disposable template
@@ -258,6 +335,7 @@ function utils::qvm::remove_template(){
 ###############################################################################
 function utils::clone_whonix_to_a_whonix_crypto(){
   utils::ui::print::function_line_in
+  local    s_msg=''
 
   utils::qvm::update_vm "${_whonix_ws_template_name}"
 
@@ -270,28 +348,42 @@ function utils::clone_whonix_to_a_whonix_crypto(){
   utils::qvm::shutdown "${_whonix_ws_template_name}"
 
   # Check if the new whonix template is already installed
-  if qvm-ls | awk '{print $1}' | grep -Pw "\b${_whonix_ws_crypto_template_name}(\s|$)"
-  then
-    utils::ui::print::info "Template ${_whonix_ws_crypto_template_name} is already cloned."
-  else
-    utils::ui::print::info "Cloning ${_whonix_ws_template_name} to ${_whonix_ws_crypto_template_name}."
-    sudo qvm-clone ${_whonix_ws_template_name} ${_whonix_ws_crypto_template_name}
-  fi
+  utils::qvm::clone_template ${_whonix_ws_template_name} \
+                                ${_whonix_ws_crypto_template_name}
 
   utils::qvm::shutdown "${_whonix_ws_crypto_template_name}"
 
-  # Create a Whonix AppVM based on your new Crypto Whonix template which you will now use Trezor on.
-  utils::ui::print::info "Creating Whonix AppVM dedicated to Trezor ${_whonix_ws_trezor_wm_name}."
+  # Create a Whonix AppVM based on your new Crypto Whonix template which you 
+  # will now use Trezor on.
+  s_msg="Creating Whonix AppVM dedicated to Trezor ${_whonix_ws_trezor_wm_name}."
+  utils::ui::print::info "${s_msg}"
   # Create Trezor AppVM (whonix-ws-16-crypto) from Template whonix-ws-16-crypto
-  if qvm-ls | awk '{print $1}' | grep -Pw "\b${_whonix_ws_trezor_wm_name}(\s|$)"
+  
+  utils::qvm::create_new_vm "${_whonix_ws_trezor_wm_name}" \
+                            "${_whonix_ws_crypto_template_name}" \
+                            'purple'
+
+  utils::ui::print::function_line_out
+}
+
+###############################################################################
+#
+#  _fedora_template_name='fedora-38
+#
+###############################################################################
+function utils::fedora::download_and_update(){
+  utils::ui::print::function_line_in
+  local    s_msg=''
+  # Check if the new fedora template is already installed
+  if qvm-ls | awk '{print $1}' | grep -w "^${_fedora_template_name}$"
   then
-    utils::ui::print::info "${_whonix_ws_trezor_wm_name} already exists. Skipping."
+    s_msg="Template ${_fedora_template_name} is already installed."
+    utils::ui::print::info "${s_msg}"
+    return 0
   else
-    sudo qvm-create --verbose \
-                    --class=AppVM \
-                    --template=${_whonix_ws_crypto_template_name} \
-                    --label=purple \
-                    "${_whonix_ws_trezor_wm_name}"
+    sudo qubes-dom0-update qubes-template-${_fedora_template_name}
+    utils::fedora::update_os ${_fedora_template_name}
+    utils::qvm::update_vm "${_fedora_template_name}"
   fi
   utils::ui::print::function_line_out
 }
@@ -307,40 +399,17 @@ function utils::upgrade_to_new_fedora_template(){
   utils::ui::print::function_line_in
   # Open Terminal in dom0
 
-  # Check if the new fedora template is already installed
-  if qvm-ls | awk '{print $1}' | grep -w "^${_fedora_template_name}$"
-  then
-    utils::ui::print::info "Template ${_fedora_template_name} is already installed."
-  else
-    sudo qubes-dom0-update qubes-template-${_fedora_template_name}
-    utils::fedora::update_os ${_fedora_template_name}
-    utils::qvm::update_vm "${_fedora_template_name}"
-  fi
+  utils::fedora::download_and_update
 
-  if qvm-ls | awk '{print $1}' | grep -w "^${_fedora_sys_template_name}$"
-  then
-    utils::ui::print::info "Template ${_fedora_sys_template_name} is already installed."
-  else
-    # Clone current regular fedora-XX template Qube and name it fedora-XX-sys.
-    qvm-clone ${_fedora_template_name} ${_fedora_sys_template_name}
-  fi
+  utils::qvm::clone_template "${_fedora_template_name}" \
+                             "${_fedora_sys_template_name}"
 
-  if qvm-ls | awk '{print $1}' | grep -w "^${_fedora_dvm_template_name}$"
-  then
-    utils::ui::print::info "Template ${_fedora_dvm_template_name} is already installed."
-  else
-    # Create a disposable vm template based on fedora-XX
-    qvm-create --verbose --template ${_fedora_template_name} --label red ${_fedora_dvm_template_name}
-    qvm-prefs ${_fedora_dvm_template_name} template_for_dispvms True
-  fi
+  utils::qvm::create_dispvm_template "${_fedora_dvm_template_name}" \
+                                     "${_fedora_template_name}" \
+                                     'red'
 
-  if qvm-ls | awk '{print $1}' | grep -w "^${_fedora_sys_dvm_template_name}$"
-  then
-      utils::ui::print::info "Template ${_fedora_sys_dvm_template_name} is already installed."
-  else
-    # Clone fedora-XX-dvm qube and name it fedora-XX-sys-dvm.
-    qvm-clone ${_fedora_dvm_template_name} ${_fedora_sys_dvm_template_name}
-  fi
+  utils::qvm::clone_template "${_fedora_dvm_template_name}" \
+                             "${_fedora_sys_dvm_template_name}"
 
   utils::qvm::shutdown "${_fedora_template_name}" ;
   utils::qvm::shutdown "${_fedora_dvm_template_name}" ;
@@ -407,11 +476,14 @@ function utils::check_if_online(){
 ###############################################################################
 function trezor::config::dom0(){
   utils::ui::print::function_line_in
-  local s_policy_file='/etc/qubes-rpc/policy/trezord-service'
-  local s_policy_line='$anyvm $anyvm allow,user=trezord,target=sys-usb'
+  local    s_policy_file=''
+  local    s_policy_line=''
 
+  s_policy_file='/etc/qubes-rpc/policy/trezord-service'
+  s_policy_line='$anyvm $anyvm allow,user=trezord,target=sys-usb'
   sudo touch ${s_policy_file}
   sudo printf '%s\n' "${s_policy_line}" | sudo tee ${s_policy_file}
+
   utils::ui::print::function_line_out
 }
 
@@ -422,9 +494,12 @@ function trezor::config::listening_port(){
   utils::ui::print::function_line_in
   local s_tcp_listen_line=''
   local i_result=0
+  local s_msg=''
+
   s_tcp_listen_line='socat TCP-LISTEN:21325,fork EXEC:"qrexec-client-vm sys-usb trezord-service" &'
 
-  utils::ui::print::info "Adding ${s_tcp_listen_line} to ${_whonix_ws_trezor_wm_name} rc.local"
+  s_msg="Adding ${s_tcp_listen_line} to ${_whonix_ws_trezor_wm_name} rc.local"
+  utils::ui::print::info "${s_msg}"
   #
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sudo cat /rw/config/rc.local | grep -q 'socat TCP-LISTEN:21325'" || i_result=$?
   if [[ ${i_result} == 1 ]]
@@ -443,7 +518,8 @@ function trezor::config::install_packages(){
   local s_warn_msg=''
 
   s_warn_msg="Waiting till whonix can reach the internet."
-  qvm-start --skip-if-running sys-whonix
+  utils::qvm::start 'sys-whonix'
+  utils::qvm::start "${_whonix_ws_trezor_wm_name}"
 
   while true
   do
@@ -457,7 +533,7 @@ function trezor::config::install_packages(){
     fi
   done
 
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo apt update && sudo apt -y install curl gpg pip'
+  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'nslookup security.debian.org && sudo apt update && sudo apt -y install curl gpg pip'
 
   sleep 10
 
@@ -508,8 +584,8 @@ function trezor::config::trezor_bridge(){
   s_trezor_bridge_file_name=$(qvm-run --pass-io --dispvm ${_fedora_dvm_template_name} "${s_cmd_line}")
   s_trezor_bridge_file_url="https://data.trezor.io/bridge/latest/${s_trezor_bridge_file_name}"
 
-  qvm-start --skip-if-running ${_fedora_dvm_template_name}
-  qvm-start --skip-if-running ${_fedora_sys_template_name}
+  utils::qvm::start "${_fedora_dvm_template_name}"
+  utils::qvm::start "${_fedora_sys_template_name}"
 
   # Download and Import the signing key
   utils::ui::print::info "Downloading trezor-bridge with ${_fedora_dvm_template_name} and pipe to ${_fedora_sys_template_name}"
@@ -658,6 +734,8 @@ __EOF__
       qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "cat > ${s_satoshilaps_local_path}"
 
   # Import the public key of the Satoshilabs. This is necessary to check the downloaded trezor suite
+  # Key fingerprint = EB48 3B26 B078 A4AA 1B6F  425E E21B 6950 A2EC B65C
+  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "gpg --keyid-format long --import --import-options show-only --with-fingerprint  ${s_satoshilaps_local_path}"
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "gpg --import ${s_satoshilaps_local_path}"
 
   # checking signature
