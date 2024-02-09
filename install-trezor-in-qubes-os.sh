@@ -73,7 +73,7 @@ function utils::fedora::update_os(){
   utils::ui::print::info 'sudo fstrim -av'
   qvm-run --pass-io ${p_system} 'sudo fstrim -av'
 
-  qvm-shutdown --wait ${p_system}
+  utils::qvm::shutdown ${p_system}
   utils::ui::print::function_line_out
 }
 
@@ -104,6 +104,101 @@ function utils::qvm::update_vm(){
                 state.sls \
                 update.qubes-vm
   utils::ui::print::function_line_out
+}
+
+###############################################################################
+# 
+###############################################################################
+function utils::qvm::start_service_vms(){
+  utils::ui::print::function_line_in
+  for vmname in sys-usb sys-net sys-firewall sys-backup;
+  do 
+    sudo qvm-start --skip-if-running "${vmname}" ;
+  done
+  utils::ui::print::function_line_out
+}
+
+###############################################################################
+# 
+###############################################################################
+function utils::qvm::shutdown(){
+#  utils::ui::print::function_line_in
+  local    p_vm="${1}" ; shift
+
+  utils::ui::print::info "Trying to shutdown ${p_vm}"
+  sudo qvm-shutdown --wait ${p_vm}
+
+  # Force to shutdown if the vm is still running
+  if [[ -n $(qvm-ls --quiet --running --raw-list ${p_vm}) ]]
+  then
+    sudo qvm-shutdown --wait --force ${p_vm}
+  fi
+#  utils::ui::print::function_line_out
+}
+
+###############################################################################
+# 
+###############################################################################
+function utils::qvm::shutdown_all(){
+#  utils::ui::print::function_line_in
+
+  utils::ui::print::info "Trying to shutdown all vms"
+  sudo qvm-shutdown --wait --all
+
+#  utils::ui::print::function_line_out
+}
+
+###############################################################################
+# 
+###############################################################################
+function utils::qvm::shutdown_all_using_netvm(){
+#  utils::ui::print::function_line_in
+  local    p_netvm="${1}" ; shift
+
+  utils::ui::print::info "Shutting down all vms using ${p_netvm}"
+  for s_vmname in $(qvm-ls --fields=name,state,NETVM | \
+                    grep -w 'Running' | \
+                    grep -Pw "\b${p_netvm}(\s|$)" | \
+                    awk '{print $1}' | \
+                    grep -Pwv "\b${p_netvm}(\s|$)" );
+  do
+    utils::qvm::shutdown "${s_vmname}" ;
+  done
+#  utils::ui::print::function_line_out
+}
+
+###############################################################################
+# 
+###############################################################################
+function utils::qvm::shutdown_all_using_template(){
+#  utils::ui::print::function_line_in
+  local    p_template="${1}" ; shift
+
+  utils::ui::print::info "Shutting down all vms using ${p_template}"
+  for vmname in $(qvm-ls --fields=name,state,template | \
+                    grep -w 'Running' | \
+                    grep -Pw "\b${p_template}(\s|$)" | \
+                    awk '{print $1}' | \
+                    grep -Pwv "\b${p_template}(\s|$)");
+  do
+    utils::qvm::shutdown "${s_vmname}" ;
+  done
+#  utils::ui::print::function_line_out
+}
+
+###############################################################################
+# 
+###############################################################################
+function utils::qvm::change_template(){
+#  utils::ui::print::function_line_in
+
+  local    p_vm="${1}" ; shift
+  local    p_template="${1}" ; shift
+
+  utils::ui::print::info "Changing template of ${p_vm} to ${p_template}"
+  utils::qvm::shutdown "${p_vm}"
+  sudo qvm-prefs "${p_vm}" template ${p_template};
+#  utils::ui::print::function_line_out
 }
 
 ###############################################################################
@@ -172,7 +267,7 @@ function utils::clone_whonix_to_a_whonix_crypto(){
 
   sudo qvm-run --pass-io ${_whonix_ws_template_name} 'sudo fstrim -av'
 
-  sudo qvm-shutdown --wait ${_whonix_ws_template_name}
+  utils::qvm::shutdown "${_whonix_ws_template_name}"
 
   # Check if the new whonix template is already installed
   if qvm-ls | awk '{print $1}' | grep -Pw "\b${_whonix_ws_crypto_template_name}(\s|$)"
@@ -183,7 +278,7 @@ function utils::clone_whonix_to_a_whonix_crypto(){
     sudo qvm-clone ${_whonix_ws_template_name} ${_whonix_ws_crypto_template_name}
   fi
 
-  sudo qvm-shutdown --wait ${_whonix_ws_crypto_template_name}
+  utils::qvm::shutdown "${_whonix_ws_crypto_template_name}"
 
   # Create a Whonix AppVM based on your new Crypto Whonix template which you will now use Trezor on.
   utils::ui::print::info "Creating Whonix AppVM dedicated to Trezor ${_whonix_ws_trezor_wm_name}."
@@ -208,7 +303,7 @@ function utils::clone_whonix_to_a_whonix_crypto(){
 #  _fedora_sys_template_name='fedora-38-sys'
 #  _fedora_sys_dvm_template_name='fedora-38-sys-dvm'
 ###############################################################################
-function utils::update_to_new_fedora_template(){
+function utils::upgrade_to_new_fedora_template(){
   utils::ui::print::function_line_in
   # Open Terminal in dom0
 
@@ -247,104 +342,34 @@ function utils::update_to_new_fedora_template(){
     qvm-clone ${_fedora_dvm_template_name} ${_fedora_sys_dvm_template_name}
   fi
 
-  sudo qvm-shutdown --wait "${_fedora_template_name}" ;
-  sudo qvm-shutdown --wait "${_fedora_dvm_template_name}" ;
-  sudo qvm-shutdown --wait "${_fedora_sys_template_name}" ;
-  sudo qvm-shutdown --wait "${_fedora_sys_dvm_template_name}" ;
+  utils::qvm::shutdown "${_fedora_template_name}" ;
+  utils::qvm::shutdown "${_fedora_dvm_template_name}" ;
+  utils::qvm::shutdown "${_fedora_sys_template_name}" ;
+  utils::qvm::shutdown "${_fedora_sys_dvm_template_name}" ;
 
   utils::update_global_templates
 
-  #TODO 
-  utils::ui::print::info "Try to shutdown all vms!"
-
-  utils::ui::print::info "Shutting down all vms using sys-usb"
-  for vmname in $(qvm-ls --fields=name,state,NETVM | \
-                    grep -w 'Running' | \
-                    grep -w 'sys-usb' | \
-                    awk '{print $1}' | \
-                    grep -vw 'sys-usb' );
-  do
-    utils::ui::print::info "qvm-shutdown --wait ${vmname}"
-    sudo qvm-shutdown --wait "${vmname}" ;
-  done
-
-  utils::ui::print::info "Shutting down all vms using sys-firewall"
-  for vmname in $(qvm-ls --fields=name,state,NETVM | \
-                    grep -w 'Running' | \
-                    grep -w 'sys-firewall' | \
-                    awk '{print $1}' | \
-                    grep -vw 'sys-firewall' );
-  do
-    utils::ui::print::info "qvm-shutdown --wait ${vmname}"
-    sudo qvm-shutdown --wait "${vmname}" ;
-  done
-
-  utils::ui::print::info "Shutting down all vms using sys-net"
-  for vmname in $(qvm-ls --fields=name,state,NETVM | \
-                    grep -w 'Running' | \
-                    grep -w 'sys-net' | \
-                    awk '{print $1}' | \
-                    grep -vw 'sys-net' );
-  do
-    utils::ui::print::info "qvm-shutdown --wait ${vmname}"
-    sudo qvm-shutdown --wait "${vmname}" ;
-  done
+  utils::qvm::shutdown_all_using_netvm 'sys-firewall'
+  utils::qvm::shutdown_all_using_netvm 'sys-net'
 
   # Shutdown all the vms using the old fedora dvm template
-  utils::ui::print::info "Shutting down all vms using ${_old_fedora_dvm_template_name}"
-  for vmname in $(qvm-ls --fields=name,state,template | \
-                    grep -w 'Running' | \
-                    grep -Pw "\b${_old_fedora_dvm_template_name}(\s|$)" | \
-                    awk '{print $1}' | \
-                    grep -Pwv "\b${_old_fedora_dvm_template_name}(\s|$)");
-  do
-    utils::ui::print::info "qvm-shutdown --wait ${vmname}"
-    sudo qvm-shutdown --wait "${vmname}";
-  done
+  utils::qvm::shutdown_all_using_template "${_old_fedora_dvm_template_name}"
+  utils::qvm::shutdown_all_using_template "${_old_fedora_template_name}"
 
-  # Shutdown all the vms using the old fedora template
-  utils::ui::print::info "Shutting down all vms using ${_old_fedora_template_name}"
-  for vmname in $(qvm-ls --fields=name,state,template | \
-                    grep -w 'Running' | \
-                    grep -w "\b${_old_fedora_template_name}(\s|$)" | \
-                    awk '{print $1}' | \
-                    grep -Pwv "\b${_old_fedora_template_name}(\s|$)");
-  do
-    utils::ui::print::info "qvm-shutdown --wait ${vmname}"
-    sudo qvm-shutdown --wait "${vmname}";
-  done
+  utils::qvm::shutdown_all
 
-  utils::ui::print::info "Shutting all vms!"
-  sudo qvm-shutdown --wait --all
-  utils::ui::print::info "Shutting down all vms done!"
 
-  utils::ui::print::info "Changing template of ${_fedora_sys_dvm_template_name} to ${_fedora_sys_template_name}"
-  sudo qvm-shutdown --wait ${_fedora_sys_dvm_template_name};
-  sudo qvm-shutdown --wait ${_fedora_sys_template_name};
-  sudo qvm-prefs ${_fedora_sys_dvm_template_name} template ${_fedora_sys_template_name};
-
-  utils::ui::print::info "Changing template of sys-usb to ${_fedora_sys_dvm_template_name}"
-  sudo qvm-shutdown --wait sys-usb;
-  sudo qvm-prefs sys-usb template ${_fedora_sys_dvm_template_name};
-
-  utils::ui::print::info "Changing template of sys-backup to ${_fedora_template_name}"
-  sudo qvm-prefs sys-backup template ${_fedora_template_name};
-
-  utils::ui::print::info "Changing template of sys-net to ${_fedora_template_name}"
-  sudo qvm-prefs sys-net template ${_fedora_template_name};
-
-  utils::ui::print::info "Changing template of default-mgmt-dvm to ${_fedora_template_name}"
-  sudo qvm-prefs default-mgmt-dvm template ${_fedora_template_name};
-
-  utils::ui::print::info "Changing template of sys-firewall to ${_fedora_dvm_template_name}"
-  sudo qvm-prefs sys-firewall template ${_fedora_dvm_template_name};
+  utils::qvm::change_template "${_fedora_sys_dvm_template_name}" \
+                              "${_fedora_sys_template_name}"
+  utils::qvm::change_template 'sys-usb' "${_fedora_sys_dvm_template_name}"
+  utils::qvm::change_template 'sys-backup' "${_fedora_template_name}"
+  utils::qvm::change_template 'sys-net' "${_fedora_template_name}"
+  utils::qvm::change_template 'default-mgmt-dvm' "${_fedora_template_name}"
+  utils::qvm::change_template 'sys-firewall' "${_fedora_dvm_template_name}"
 
   # Start all vms
-  for vmname in sys-usb sys-net sys-firewall sys-backup;
-  do 
-    sudo qvm-start --skip-if-running "${vmname}" ;
-  done
-
+  utils::qvm::start_service_vms
+  
   utils::ui::print::function_line_out
 }
 
@@ -498,8 +523,8 @@ function trezor::config::trezor_bridge(){
   utils::ui::print::info "qvm-run --pass-io ${_fedora_sys_template_name} sudo rpm -i /tmp/${s_trezor_bridge_file_name}"
   qvm-run --pass-io ${_fedora_sys_template_name} "rm -f /tmp/${s_trezor_bridge_file_name}"
 
-  qvm-shutdown --wait ${_fedora_dvm_template_name}
-  qvm-shutdown --wait ${_fedora_sys_template_name}
+  utils::qvm::shutdown "${_fedora_dvm_template_name}"
+  utils::qvm::shutdown "${_fedora_sys_template_name}"
 
   utils::ui::print::function_line_out
 }
@@ -532,7 +557,7 @@ __EOF__
   cat /tmp/51-trezor.rules | \
     qvm-run --pass-io ${_fedora_sys_template_name} "sudo tee ${s_trezor_udev_rules_file}"
   qvm-run --pass-io ${_fedora_sys_template_name} "sudo chmod +x ${s_trezor_udev_rules_file}"
-  qvm-shutdown --wait ${_fedora_sys_template_name}
+  utils::qvm::shutdown ${_fedora_sys_template_name}
   utils::ui::print::function_line_out
 }
 
@@ -542,7 +567,7 @@ __EOF__
 function trezor::install::trezor_common::fedora_xx_sys(){
   utils::ui::print::function_line_in
   # 
-  qvm-shutdown --wait ${_fedora_sys_template_name}
+  utils::qvm::shutdown ${_fedora_sys_template_name}
 
   utils::ui::print::info "Allow Network access for fedora-XX-sys"
   qvm-prefs --set ${_fedora_sys_template_name} netvm sys-firewall
@@ -550,12 +575,12 @@ function trezor::install::trezor_common::fedora_xx_sys(){
   # Install the trezor common package
   utils::ui::print::info "qvm-run --pass-io ${_fedora_sys_template_name} sudo dnf -y install trezor-common"
   qvm-run --pass-io ${_fedora_sys_template_name} "sudo dnf -y install trezor-common"
-  qvm-shutdown --wait ${_fedora_sys_template_name}
+  utils::qvm::shutdown ${_fedora_sys_template_name}
 
   utils::ui::print::info "Remove Network access for fedora-XX-sys"
   qvm-prefs --set ${_fedora_sys_template_name} netvm none
 
-  qvm-shutdown --wait ${_fedora_sys_template_name}
+  utils::qvm::shutdown ${_fedora_sys_template_name}
   utils::ui::print::function_line_out
 }
 
@@ -574,26 +599,19 @@ function trezor::config::whonix_ws_trezor(){
   local s_trezor_suite_asc_file_name=''
   local s_trezor_suite_file_path=''
   local s_trezor_suite_asc_file_path=''
+  local s_json_git_response=''
 
   s_satoshilaps_private_key='satoshilabs-2021-signing-key.asc'
   s_satoshilaps_private_key_url="https://trezor.io/security/${s_satoshilaps_private_key}"
   s_satoshilaps_local_path="/home/user/${s_satoshilaps_private_key}"
 
-  qvm-run --pass-io ${_fedora_dvm_template_name} 'sudo dnf -y install jq'
-  qvm-shutdown --wait ${_fedora_dvm_template_name}
-
-  if [[ -n $(qvm-ls --quiet --running --raw-list ${_fedora_dvm_template_name}) ]]
-  then
-    qvm-shutdown --wait --force ${_fedora_dvm_template_name}
-  fi
-
   # _git_trezor_repo='trezor/trezor-suite'
   # _trezor_release_url="https://api.github.com/repos/${_git_trezor_repo}/releases/latest"
   utils::ui::print::info "Get the JSON data of the newest release"
-  _json_git_response=$(qvm-run --pass-io --dispvm ${_fedora_dvm_template_name} "curl -s ${_trezor_release_url}")
+  s_json_git_response=$(qvm-run --pass-io --dispvm ${_fedora_dvm_template_name} "curl -s ${_trezor_release_url}")
 
   # Neueste Release-Version aus den JSON-Daten extrahieren
-  _latest_trezor_version=$(printf '%s' "${_json_git_response}" | \
+  _latest_trezor_version=$(printf '%s' "${s_json_git_response}" | \
                             grep -o '"tag_name": "[^"]*' | \
                             grep -o '[^"]*$')
 
@@ -603,9 +621,10 @@ function trezor::config::whonix_ws_trezor(){
 #!/bin/bash
 declare _git_trezor_repo='trezor/trezor-suite'
 declare _trezor_release_url="https://api.github.com/repos/${_git_trezor_repo}/releases/latest"
-declare _json_git_response="$(curl -s ${_trezor_release_url})"
+declare s_json_git_response="$(curl -s ${_trezor_release_url})"
 
-s_trezor_suite_app_url=$(printf '%s' ${_json_git_response} | jq -r '.assets[] | select(.name | endswith("linux-x86_64.AppImage")) | .browser_download_url')
+sudo dnf -y install jq
+s_trezor_suite_app_url=$(printf '%s' ${s_json_git_response} | jq -r '.assets[] | select(.name | endswith("linux-x86_64.AppImage")) | .browser_download_url')
 printf '%s' "${s_trezor_suite_app_url}"
 __EOF__
 
@@ -686,7 +705,7 @@ __EOF__
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo apt -y autoremove && sudo apt -y autoclean'
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo fstrim -av'
 
-  qvm-shutdown --wait ${_whonix_ws_trezor_wm_name}
+  utils::qvm::shutdown ${_whonix_ws_trezor_wm_name}
   utils::ui::print::function_line_out
 }
 
@@ -855,31 +874,21 @@ function main(){
   # Update Templates in dom0
   #sudo qubesctl --skip-dom0 --templates state.sls update.qubes-vm
 
-  utils::update_to_new_fedora_template
-utils::pause
+  utils::upgrade_to_new_fedora_template
   utils::remove_old_fedora_templates
-utils::pause
   utils::qvm::update_all_templates
-utils::pause
+  
   utils::clone_whonix_to_a_whonix_crypto
-utils::pause
+
   trezor::config::dom0
-utils::pause
   trezor::config::listening_port
-utils::pause
   trezor::config::install_packages
-utils::pause
   trezor::config::fedora_sys_dvm_template
-utils::pause
   trezor::config::trezor_bridge
-utils::pause
   trezor::create::udev_rule_file
-utils::pause
   trezor::install::trezor_common::fedora_xx_sys
-utils::pause
   trezor::config::whonix_ws_trezor
-utils::pause
-  utils::ui::print::info "Trezor Suite downloaded and installed!"
+  #utils::ui::print::info "Trezor Suite downloaded and installed!"
   utils::ui::print::function_line_out
 }
 
