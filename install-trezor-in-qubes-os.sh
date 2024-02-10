@@ -340,8 +340,8 @@ function utils::clone_whonix_to_a_whonix_crypto(){
   utils::qvm::update_vm "${_whonix_ws_template_name}"
 
   # Create a new whonix template for cryptocurrency
-  sudo qvm-run --pass-io ${_whonix_ws_template_name} 'sudo apt -y autoremove'
-  sudo qvm-run --pass-io ${_whonix_ws_template_name} 'sudo apt -y autoclean'
+  sudo qvm-run --pass-io ${_whonix_ws_template_name} 'sudo apt -qq -y autoremove'
+  sudo qvm-run --pass-io ${_whonix_ws_template_name} 'sudo apt -qq -y autoclean'
 
   sudo qvm-run --pass-io ${_whonix_ws_template_name} 'sudo fstrim -av'
 
@@ -536,8 +536,8 @@ function trezor::config::install_packages(){
   done
   
   s_cmd_line='nslookup security.debian.org && \
-              sudo apt update && \
-              sudo apt -y install curl gpg pip'
+              sudo apt -qq -y update && \
+              sudo apt -qq -y install curl gpg pip'
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "${s_cmd_line}"
 
   sleep 10
@@ -603,7 +603,7 @@ function trezor::config::trezor_bridge(){
   
   utils::ui::print::info "qvm-run --pass-io ${_fedora_sys_template_name} chmod u+x /tmp/${s_trezor_bridge_file_name}"
   qvm-run --pass-io ${_fedora_sys_template_name} "chmod u+x /tmp/${s_trezor_bridge_file_name}"
-  utils::ui::print::info "qvm-run --pass-io ${_fedora_sys_template_name} chmod u+x /tmp/${s_trezor_bridge_file_name}"
+  utils::ui::print::info "qvm-run --pass-io ${_fedora_sys_template_name} sudo rpm -i /tmp/${s_trezor_bridge_file_name}"
   qvm-run --pass-io ${_fedora_sys_template_name} "sudo rpm -i /tmp/${s_trezor_bridge_file_name}"
   utils::ui::print::info "qvm-run --pass-io ${_fedora_sys_template_name} sudo rpm -i /tmp/${s_trezor_bridge_file_name}"
   qvm-run --pass-io ${_fedora_sys_template_name} "rm -f /tmp/${s_trezor_bridge_file_name}"
@@ -640,7 +640,7 @@ __EOF__
 
   # Config and install udev rules in fedora-XX-sys
   cat /tmp/51-trezor.rules | \
-    qvm-run --pass-io ${_fedora_sys_template_name} "sudo tee ${s_trezor_udev_rules_file}"
+    qvm-run --pass-io ${_fedora_sys_template_name} "sudo tee ${s_trezor_udev_rules_file} > /dev/null"
   qvm-run --pass-io ${_fedora_sys_template_name} "sudo chmod +x ${s_trezor_udev_rules_file}"
   utils::qvm::shutdown ${_fedora_sys_template_name}
   utils::ui::print::function_line_out
@@ -748,12 +748,12 @@ __EOF__
 
   # Import the public key of the Satoshilabs. This is necessary to check the downloaded trezor suite
   # Key fingerprint = EB48 3B26 B078 A4AA 1B6F  425E E21B 6950 A2EC B65C
-  s_fingerprint=$(qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "gpg --keyid-format long --import --import-options show-only --with-fingerprint  ${s_satoshilaps_local_path} | grep 'Key fingerprint' | sed 's/ //g'")
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "gpg --import ${s_satoshilaps_local_path}"
-
+  s_fingerprint=$(qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "gpg --keyid-format long --import --import-options show-only --with-fingerprint ${s_satoshilaps_local_path} | grep 'Key fingerprint' | sed 's/ //g'")
+  
   if [[ "${s_fingerprint}" == "${s_satoshilaps_key_fingerprint}" ]]
   then
-    gpg --import ${s_satoshilaps_local_path}
+    utils::ui::print::info "Importing ${s_satoshilaps_local_path}"
+    qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "gpg --import ${s_satoshilaps_local_path}"
   else
     print '%s\n' "Unable to verify ${s_satoshilaps_local_path}!"
     print '%s\n' "STOPPING!"
@@ -802,7 +802,7 @@ __EOF__
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "sudo rm -f ${s_trezor_suite_asc_file_path}"
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo rm -fR /home/user/squashfs-root'
   
-  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo apt -y autoremove && sudo apt -y autoclean'
+  qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo apt -qq -y autoremove && sudo apt -qq -y autoclean'
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} 'sudo fstrim -av'
 
   utils::qvm::shutdown ${_whonix_ws_trezor_wm_name}
