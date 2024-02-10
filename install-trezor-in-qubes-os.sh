@@ -711,7 +711,7 @@ declare s_git_trezor_repo='trezor/trezor-suite'
 declare s_trezor_release_url="https://api.github.com/repos/${s_git_trezor_repo}/releases/latest"
 declare s_json_git_response="$(curl -s ${s_trezor_release_url})"
 
-sudo dnf -y install jq
+sudo dnf --quiet -y install jq
 s_trezor_suite_app_url=$(printf '%s' ${s_json_git_response} | jq -r '.assets[] | select(.name | endswith("linux-x86_64.AppImage")) | .browser_download_url')
 printf '%s' "${s_trezor_suite_app_url}"
 __EOF__
@@ -742,6 +742,7 @@ __EOF__
     qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "cat > ${s_trezor_suite_asc_file_path}"
 
   # Download and Import the signing key
+  utils::ui::print::info "Download and Import the signing key ${s_satoshilaps_private_key}..."
   qvm-run --pass-io --dispvm ${_fedora_dvm_template_name} "curl -L ${s_satoshilaps_private_key_url}" | \
     qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "cat > ${s_satoshilaps_local_path}"
 
