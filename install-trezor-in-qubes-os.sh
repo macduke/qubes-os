@@ -136,8 +136,9 @@ function utils::qvm::start_service_vms(){
 # 
 ###############################################################################
 function utils::qvm::start(){
+  local    p_vm="${1}" ; shift
   #utils::ui::print::function_line_in
-  sudo qvm-start --skip-if-running "${vmname}" ;
+  sudo qvm-start --skip-if-running "${p_vm}" ;
   #utils::ui::print::function_line_out
 }
 
