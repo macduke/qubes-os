@@ -48,7 +48,7 @@ function init::variables(){
   _whonix_ws_crypto_template_name='whonix-ws-16-crypto'
   _whonix_ws_trezor_wm_name='whonix-ws-16-trezor'
 
-  _skip_all_template_updates='TRUE'
+  _skip_all_template_updates='FALSE'
 
   # API-Endpunkt für die neueste Release-Version
   # GitHub repository
