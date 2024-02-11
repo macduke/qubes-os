@@ -764,21 +764,24 @@ __EOF__
   
   if [[ "${s_fingerprint}" == "${s_satoshilaps_key_fingerprint}" ]]
   then
+    utils::ui::print::info "Fingerprint of the Satoshi key is valid!"
     utils::ui::print::info "Importing ${s_satoshilaps_local_path}"
     qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "gpg --import ${s_satoshilaps_local_path}"
   else
-    print '%s\n' "Unable to verify ${s_satoshilaps_local_path}!"
-    print '%s\n' "STOPPING!"
+    utils::ui::print::errorX "Unable to verify ${s_satoshilaps_local_path}!"
+    utils::ui::print::errorX "STOPPING!"
     utils::pause
   fi
 
   # checking signature
   utils::ui::print::info "Checking signature!"
-  if ! qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "gpg --verify ${s_trezor_suite_asc_file_name} ${s_trezor_suite_file_path}"
+  if qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "gpg --verify ${s_trezor_suite_asc_file_name} ${s_trezor_suite_file_path}"
   then
+    utils::ui::print::info "Signature is valid!"
+  else
     utils::ui::print::errorX "Unable to verify ${s_trezor_suite_file_name}!"
     utils::ui::print::errorX "STOPPING!"
-    return 1
+    utils::pause
   fi
 
   qvm-run --pass-io ${_whonix_ws_trezor_wm_name} "chmod +x ${s_trezor_suite_file_path}"
@@ -982,9 +985,6 @@ function main(){
   utils::check_if_online
   init::variables
 
-  utils::pause
-
-
   utils::upgrade_to_new_fedora_template
   utils::remove_old_fedora_templates
 
@@ -1003,6 +1003,10 @@ function main(){
   trezor::install::trezor_common::fedora_xx_sys
   trezor::config::whonix_ws_trezor
   #utils::ui::print::info "Trezor Suite downloaded and installed!"
+  utils::ui::print::infoX 'Finished please restart!'
+  utils::ui::print::infoX 'Press any key to restart or STRG+c!'
+  utils::pause
+  sudo shutdown -r now
   utils::ui::print::function_line_out
 }
 
