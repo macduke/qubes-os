@@ -63,7 +63,9 @@ function init::variables(){
 function utils::fedora::update_os(){
   utils::ui::print::function_line_in
   local    p_system="${1}" ; shift
-  # Not sure if necessary 
+  # Not sure if necessary
+  utils::qvm::start ${p_system}
+
   qvm-run --pass-io ${p_system} 'sudo dnf -y --quiet install gnome-packagekit-updater'
   qvm-run --pass-io ${p_system} 'sudo dnf -y --quiet clean all'
   qvm-run --pass-io ${p_system} 'sudo dnf -y --quiet update'
