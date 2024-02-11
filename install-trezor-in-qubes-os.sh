@@ -64,11 +64,11 @@ function utils::fedora::update_os(){
   utils::ui::print::function_line_in
   local    p_system="${1}" ; shift
   # Not sure if necessary 
-  qvm-run --pass-io ${p_system} 'sudo dnf -y install gnome-packagekit-updater'
-  qvm-run --pass-io ${p_system} 'sudo dnf -y clean all'
-  qvm-run --pass-io ${p_system} 'sudo dnf -y update'
-  qvm-run --pass-io ${p_system} 'sudo dnf -y upgrade'
-  qvm-run --pass-io ${p_system} 'sudo dnf -y clean all'
+  qvm-run --pass-io ${p_system} 'sudo dnf -y --quiet install gnome-packagekit-updater'
+  qvm-run --pass-io ${p_system} 'sudo dnf -y --quiet clean all'
+  qvm-run --pass-io ${p_system} 'sudo dnf -y --quiet update'
+  qvm-run --pass-io ${p_system} 'sudo dnf -y --quiet upgrade'
+  qvm-run --pass-io ${p_system} 'sudo dnf -y --quiet clean all'
 
   utils::ui::print::info 'sudo fstrim -av'
   qvm-run --pass-io ${p_system} 'sudo fstrim -av'
@@ -83,7 +83,8 @@ function utils::fedora::update_os(){
 function utils::qvm::update_all_templates(){
   [[ ${_skip_all_template_updates^^} == 'TRUE' ]] && return 0
   utils::ui::print::function_line_in
-  sudo qubesctl --skip-dom0 \
+  sudo qubesctl --show-output \
+                --skip-dom0 \
                 --max-concurrency 2 \
                 --templates \
                 state.sls \
@@ -94,11 +95,22 @@ function utils::qvm::update_all_templates(){
 ###############################################################################
 # 
 ###############################################################################
+function utils::qvm::update_dom0(){
+  [[ ${_skip_all_template_updates^^} == 'TRUE' ]] && return 0
+  utils::ui::print::function_line_in
+  sudo qubesctl --show-output state.sls update.qubes-dom0
+  utils::ui::print::function_line_out
+}
+
+###############################################################################
+# 
+###############################################################################
 function utils::qvm::update_vm(){
   utils::ui::print::function_line_in
   local    p_vm="${1}" ; shift
   utils::ui::print::info "Updating ${p_vm}"
-  sudo qubesctl --skip-dom0 \
+  sudo qubesctl --show-output \
+                --skip-dom0 \
                 --max-concurrency 2 \
                 --targets="${p_vm}" \
                 state.sls \
@@ -658,8 +670,8 @@ function trezor::install::trezor_common::fedora_xx_sys(){
   qvm-prefs --set ${_fedora_sys_template_name} netvm sys-firewall
 
   # Install the trezor common package
-  utils::ui::print::info "qvm-run --pass-io ${_fedora_sys_template_name} sudo dnf -y install trezor-common"
-  qvm-run --pass-io ${_fedora_sys_template_name} "sudo dnf -y install trezor-common"
+  utils::ui::print::info "qvm-run --pass-io ${_fedora_sys_template_name} sudo dnf -y --quiet install trezor-common"
+  qvm-run --pass-io ${_fedora_sys_template_name} "sudo dnf -y --quiet install trezor-common"
   utils::qvm::shutdown ${_fedora_sys_template_name}
 
   utils::ui::print::info "Remove Network access for fedora-XX-sys"
@@ -711,7 +723,7 @@ declare s_git_trezor_repo='trezor/trezor-suite'
 declare s_trezor_release_url="https://api.github.com/repos/${s_git_trezor_repo}/releases/latest"
 declare s_json_git_response="$(curl -s ${s_trezor_release_url})"
 
-sudo dnf --quiet -y install jq
+sudo dnf -y --quiet install jq
 s_trezor_suite_app_url=$(printf '%s' ${s_json_git_response} | jq -r '.assets[] | select(.name | endswith("linux-x86_64.AppImage")) | .browser_download_url')
 printf '%s' "${s_trezor_suite_app_url}"
 __EOF__
@@ -971,11 +983,13 @@ function main(){
   init::variables
 
   utils::pause
-  # Update Templates in dom0
-  #sudo qubesctl --skip-dom0 --templates state.sls update.qubes-vm
+
 
   utils::upgrade_to_new_fedora_template
   utils::remove_old_fedora_templates
+
+  # Update Templates in dom0
+  utils::qvm::update_dom0
   utils::qvm::update_all_templates
   
   utils::clone_whonix_to_a_whonix_crypto
