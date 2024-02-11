@@ -85,8 +85,7 @@ function utils::fedora::update_os(){
 function utils::qvm::update_all_templates(){
   [[ ${_skip_all_template_updates^^} == 'TRUE' ]] && return 0
   utils::ui::print::function_line_in
-  sudo qubesctl --show-output \
-                --skip-dom0 \
+  sudo qubesctl --skip-dom0 \
                 --max-concurrency 2 \
                 --templates \
                 state.sls \
@@ -100,7 +99,7 @@ function utils::qvm::update_all_templates(){
 function utils::qvm::update_dom0(){
   [[ ${_skip_all_template_updates^^} == 'TRUE' ]] && return 0
   utils::ui::print::function_line_in
-  sudo qubesctl --show-output state.sls update.qubes-dom0
+  sudo qubesctl state.sls update.qubes-dom0
   utils::ui::print::function_line_out
 }
 
@@ -111,8 +110,7 @@ function utils::qvm::update_vm(){
   utils::ui::print::function_line_in
   local    p_vm="${1}" ; shift
   utils::ui::print::info "Updating ${p_vm}"
-  sudo qubesctl --show-output \
-                --skip-dom0 \
+  sudo qubesctl --skip-dom0 \
                 --max-concurrency 2 \
                 --targets="${p_vm}" \
                 state.sls \
