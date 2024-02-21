@@ -55,11 +55,8 @@ function init::variables(){
   _git_trezor_repo='trezor/trezor-suite'
   _trezor_release_url="https://api.github.com/repos/${_git_trezor_repo}/releases/latest"
 
-  _qvmrun='qvm-run --quiet \
-                   --pass-io \
-                   --no-colour-output \
-                   --no-colour-stderr \
-                   --filter-escape-chars'
+  _qvmrun="qvm-run --quiet --pass-io --no-colour-output \
+                   --no-colour-stderr --filter-escape-chars"
 
   utils::ui::print::function_line_out
 }
