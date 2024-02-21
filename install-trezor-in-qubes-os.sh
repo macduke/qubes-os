@@ -351,6 +351,12 @@ function utils::qvm::remove_template(){
 # 
 ###############################################################################
 function utils::clone_whonix_to_a_whonix_crypto(){
+  if qvm-ls | awk '{print $1}' | grep -Pw "\b${_whonix_ws_template_name}(\s|$)"
+  then
+    utils::ui::print::info "Template ${_whonix_ws_template_name} is already cloned."
+    return 0
+  fi
+
   utils::ui::print::function_line_in
   local    s_msg=''
 
@@ -558,8 +564,7 @@ function trezor::config::install_packages(){
     fi
   done
   
-  s_cmd_line="nslookup security.debian.org && \
-              sudo apt -qq -y update && \
+  s_cmd_line="sudo apt -qq -y update && \
               sudo apt -qq -y install curl gpg pip"
   ${_qvmrun} ${p_vm} "${s_cmd_line}"
 
