@@ -48,7 +48,7 @@ function init::variables(){
   _whonix_ws_crypto_template_name='whonix-ws-16-crypto'
   _whonix_ws_trezor_wm_name='whonix-ws-16-trezor'
 
-  _skip_all_template_updates='FALSE'
+  _skip_all_template_updates='TRUE'
 
   # API-Endpunkt für die neueste Release-Version
   # GitHub repository
@@ -538,9 +538,11 @@ function trezor::config::install_packages(){
 
   local    s_warn_msg=''
   local    s_cmd_line=''
+  local    s_netvm=''
 
   s_warn_msg="Waiting till the machine can reach the internet."
-  utils::qvm::start 'sys-whonix'
+  s_netvm=$(qvm-prefs -g "${p_vm}" netvm)
+  utils::qvm::start "${s_netvm}" || true
   utils::qvm::start "${p_vm}"
 
   while true
