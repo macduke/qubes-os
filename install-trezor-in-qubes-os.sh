@@ -539,13 +539,13 @@ function trezor::config::install_packages(){
   local    s_warn_msg=''
   local    s_cmd_line=''
 
-  s_warn_msg="Waiting till whonix can reach the internet."
+  s_warn_msg="Waiting till the machine can reach the internet."
   utils::qvm::start 'sys-whonix'
   utils::qvm::start "${p_vm}"
 
   while true
   do
-    s_cmd_line='scurl --max-time 5 --silent --head https://deb.debian.org'
+    s_cmd_line='curl --max-time 5 --silent --head https://deb.debian.org'
     if ${_qvmrun} ${p_vm} ${s_cmd_line} > /dev/null
     then
       break
@@ -556,9 +556,9 @@ function trezor::config::install_packages(){
     fi
   done
   
-  s_cmd_line='nslookup security.debian.org && \
+  s_cmd_line="nslookup security.debian.org && \
               sudo apt -qq -y update && \
-              sudo apt -qq -y install curl gpg pip'
+              sudo apt -qq -y install curl gpg pip"
   ${_qvmrun} ${p_vm} "${s_cmd_line}"
 
   sleep 10
