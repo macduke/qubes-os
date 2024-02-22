@@ -800,6 +800,7 @@ function trezor::config::setup_trezor_suite_on_vm(){
   # Newest Release-Asset (Linux x86_64 AppImage) Trezor-Suite-24.1.2-linux-x86_64
   s_msg="Getting Trezor Suite version ${s_latest_trezor_version} (AppImage)..."
   utils::ui::print::info "${s_msg}"
+  echo "${_qvmrun} --dispvm ${_fedora_dvm_template_name} curl -L ${s_trezor_suite_app_url} | ${_qvmrun} ${p_vm} cat > ${s_trezor_suite_file_path}"
   ${_qvmrun} --dispvm ${_fedora_dvm_template_name} "curl -L ${s_trezor_suite_app_url}" | \
     ${_qvmrun} ${p_vm} "cat > ${s_trezor_suite_file_path}"
 
