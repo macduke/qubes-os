@@ -572,7 +572,7 @@ function trezor::config::install_packages(){
 
   # Install the trezor package
   s_cmd_line='pip3 install --user trezor'
-  utils::ui::print::info "${_qvmrun} ${p_vm} ${s_cmd_line}"
+  utils::ui::print::info "qvm-run -p ${p_vm} ${s_cmd_line}"
   ${_qvmrun} ${p_vm} ${s_cmd_line}
   utils::ui::print::function_line_out
 }
@@ -632,15 +632,15 @@ function trezor::config::trezor_bridge(){
   ${_qvmrun} --dispvm ${_fedora_dvm_template_name} "curl -L ${s_trezor_bridge_file_url}" | \
       ${_qvmrun} ${_fedora_sys_template_name} "cat > /tmp/${s_trezor_bridge_file_name}"
   
-  s_msg="${_qvmrun} ${_fedora_sys_template_name} chmod u+x /tmp/${s_trezor_bridge_file_name}"
+  s_msg="qvm-run -p ${_fedora_sys_template_name} chmod u+x /tmp/${s_trezor_bridge_file_name}"
   utils::ui::print::info "${s_msg}"
   ${_qvmrun} ${_fedora_sys_template_name} "chmod u+x /tmp/${s_trezor_bridge_file_name}"
 
-  s_msg="${_qvmrun} ${_fedora_sys_template_name} sudo rpm -i /tmp/${s_trezor_bridge_file_name}"
+  s_msg="qvm-run -p ${_fedora_sys_template_name} sudo rpm -i /tmp/${s_trezor_bridge_file_name}"
   utils::ui::print::info "${s_msg}"
   ${_qvmrun} ${_fedora_sys_template_name} "sudo rpm -i /tmp/${s_trezor_bridge_file_name}"
   
-  s_msg="${_qvmrun} ${_fedora_sys_template_name} sudo rpm -i /tmp/${s_trezor_bridge_file_name}"
+  s_msg="qvm-run -p ${_fedora_sys_template_name} sudo rpm -i /tmp/${s_trezor_bridge_file_name}"
   utils::ui::print::info "${s_msg}"
   ${_qvmrun} ${_fedora_sys_template_name} "rm -f /tmp/${s_trezor_bridge_file_name}"
 
@@ -699,7 +699,7 @@ function trezor::install::trezor_common::fedora_xx_sys(){
   s_cmd_line='sudo dnf -y --quiet install trezor-common'
 
   # Install the trezor common package
-  s_msg="${_qvmrun} ${_fedora_sys_template_name} ${s_cmd_line}"
+  s_msg="qvm-run -p ${_fedora_sys_template_name} ${s_cmd_line}"
   utils::ui::print::info "${s_msg}"
 
   ${_qvmrun} ${_fedora_sys_template_name} "${s_cmd_line}"
@@ -1026,13 +1026,16 @@ function utils::ui::print::errorX() {
 # MAIN 
 ###############################################################################
 function main(){
+  local b_init='TRUE'
   # Version 0.0.1
   utils::ui::print::function_line_in
   local s_vm=''
   if [[ ${#} == 0 ]]
   then
+    b_init='TRUE'
     s_vm="${_whonix_ws_trezor_wm_name}"
   else
+    b_init='FALSE'
     s_vm="${1}" ; shift 
   fi
 
@@ -1049,22 +1052,24 @@ function main(){
   utils::check_if_online
   init::variables
 
-  utils::upgrade_to_new_fedora_template
-  utils::remove_old_fedora_templates
-
-  # Update Templates in dom0
-  utils::qvm::update_dom0
-  utils::qvm::update_all_templates
+  # Only use at first run
+  if [[ "${b_init^^}" =='TRUE' ]]
+  then
+    utils::upgrade_to_new_fedora_template
+    utils::remove_old_fedora_templates
+    # Update Templates in dom0
+    utils::qvm::update_dom0
+    utils::qvm::update_all_templates
+    utils::clone_whonix_to_a_whonix_crypto
+    trezor::config::dom0
+    trezor::config::fedora_sys_dvm_template
+    trezor::config::trezor_bridge
+    trezor::create::udev_rule_file
+    trezor::install::trezor_common::fedora_xx_sys
+  fi
   
-  utils::clone_whonix_to_a_whonix_crypto
-
-  trezor::config::dom0
   trezor::config::listening_port "${s_vm}"
   trezor::config::install_packages "${s_vm}"
-  trezor::config::fedora_sys_dvm_template
-  trezor::config::trezor_bridge
-  trezor::create::udev_rule_file
-  trezor::install::trezor_common::fedora_xx_sys
   trezor::config::setup_trezor_suite_on_vm "${s_vm}"
   #utils::ui::print::info "Trezor Suite downloaded and installed!"
   utils::ui::print::infoX 'Finished please restart!'
