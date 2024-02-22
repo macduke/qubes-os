@@ -748,7 +748,8 @@ function trezor::get_trezor_version(){
   # Neueste Release-Version aus den JSON-Daten extrahieren
   s_latest_trezor_version=$(printf '%s' "${s_json_git_response}" | \
                             grep -o '"tag_name": "[^"]*' | \
-                            grep -o '[^"]*$')
+                            grep -o '[^"]*$' | \
+                            sed 's/v//')
   printf '%s\n' "${s_latest_trezor_version}"
 }
 
