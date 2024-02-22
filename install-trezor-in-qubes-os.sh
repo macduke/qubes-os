@@ -831,6 +831,7 @@ function trezor::config::setup_trezor_suite_on_vm(){
 
   # checking signature
   utils::ui::print::info "Checking signature!"
+  echo  "${_qvmrun} ${p_vm} gpg --verify ${s_trezor_suite_asc_file_name} ${s_trezor_suite_file_path}"
   if ${_qvmrun} ${p_vm} "gpg --verify ${s_trezor_suite_asc_file_name} ${s_trezor_suite_file_path}"
   then
     utils::ui::print::info "Signature is valid!"
@@ -1053,7 +1054,7 @@ function main(){
   init::variables
 
   # Only use at first run
-  if [[ "${b_init^^}" =='TRUE' ]]
+  if [[ "${b_init^^}" == 'TRUE' ]]
   then
     utils::upgrade_to_new_fedora_template
     utils::remove_old_fedora_templates
